@@ -27,6 +27,18 @@ class NotConfigured(RuntimeError):
     """Raised when the SMTP environment is incomplete."""
 
 
+def env(name: str, default: str = "") -> str:
+    """Environment value, treating blank as absent.
+
+    GitHub Actions passes an unset secret through as an empty string rather
+    than leaving the variable out, so ``os.environ.get(name, default)`` returns
+    "" and the default never applies. That turned a missing SMTP_PORT into an
+    int('') crash at the moment of sending.
+    """
+    value = os.environ.get(name)
+    return value.strip() if value and value.strip() else default
+
+
 def parse_recipients(raw: str | None) -> list[str]:
     """Split a recipient list on commas or semicolons.
 
@@ -41,21 +53,26 @@ def parse_recipients(raw: str | None) -> list[str]:
 
 
 def send_email(subject: str, text_body: str, html_body: str | None = None) -> None:
-    host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
-    port = int(os.environ.get("SMTP_PORT", "587"))
-    user = os.environ.get("SMTP_USER")
-    password = os.environ.get("SMTP_PASSWORD")
+    host = env("SMTP_HOST", "smtp.gmail.com")
+    user = env("SMTP_USER")
+    password = env("SMTP_PASSWORD")
 
     missing = [n for n, v in (("SMTP_USER", user), ("SMTP_PASSWORD", password)) if not v]
     if missing:
         raise NotConfigured(f"Mangler miljøvariabler: {', '.join(missing)}")
 
-    to = parse_recipients(os.environ.get("MAIL_TO")) or [user]
-    bcc = parse_recipients(os.environ.get("MAIL_BCC"))
+    raw_port = env("SMTP_PORT", "587")
+    try:
+        port = int(raw_port)
+    except ValueError as exc:
+        raise NotConfigured(f"SMTP_PORT er ikke et tall: {raw_port!r}") from exc
+
+    to = parse_recipients(env("MAIL_TO")) or [user]
+    bcc = parse_recipients(env("MAIL_BCC"))
 
     message = EmailMessage()
     message["Subject"] = subject
-    message["From"] = os.environ.get("MAIL_FROM", user)
+    message["From"] = env("MAIL_FROM", user)
     message["To"] = ", ".join(to)
     if bcc:
         message["Bcc"] = ", ".join(bcc)
