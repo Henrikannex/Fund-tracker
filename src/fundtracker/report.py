@@ -50,9 +50,9 @@ def to_text(est: Estimate) -> str:
         f"Estimert avkastning {_no_date(est.date)}: {_pct(est.return_pct)}",
         "",
         "Sammensetning:",
-        f"  Aksjeavkastning i NOK   {_pct(est.equity_return_pct)}",
-        f"    herav valutaeffekt    {_pct(est.fx_contribution_pct)}",
-        f"  Forvaltningshonorar     {_pct(-est.fee_drag_pct, 4)}",
+        _summary_line("Aksjeavkastning i NOK", _pct(est.equity_return_pct)),
+        _summary_line("Herav valutaeffekt", _pct(est.fx_contribution_pct)),
+        _summary_line("Forvaltningshonorar", _pct(-est.fee_drag_pct, 4)),
         "",
         f"Dekning: {_num(est.coverage_pct)} % av fondet"
         + (f", {_num(est.stale_weight_pct)} % uten dagskurs"
@@ -80,6 +80,11 @@ def to_text(est: Estimate) -> str:
         "sluttkurser. Det er ikke fondets offisielle NAV.",
     ]
     return "\n".join(lines)
+
+
+def _summary_line(label: str, value: str) -> str:
+    """One row of the composition block, with the values in a fixed column."""
+    return f"  {label:<24}{value}"
 
 
 def _contribution_line(c) -> str:
@@ -150,7 +155,7 @@ def to_html(est: Estimate) -> str:
   <table style="margin-top:24px;font-size:14px;border-collapse:collapse">
     <tr><td style="padding:3px 20px 3px 0;color:#666">Aksjeavkastning i NOK</td>
         <td style="text-align:right">{_pct(est.equity_return_pct)}</td></tr>
-    <tr><td style="padding:3px 20px 3px 0;color:#666">&nbsp;&nbsp;herav valutaeffekt</td>
+    <tr><td style="padding:3px 20px 3px 0;color:#666">Herav valutaeffekt</td>
         <td style="text-align:right;color:#666">{_pct(est.fx_contribution_pct)}</td></tr>
     <tr><td style="padding:3px 20px 3px 0;color:#666">Forvaltningshonorar</td>
         <td style="text-align:right;color:#666">{_pct(-est.fee_drag_pct, 4)}</td></tr>
