@@ -268,6 +268,10 @@ def cmd_backtest(args) -> int:
     fund = load_fund(args.fund)
     snapshot = holdings_mod.load_holdings(fund)
 
+    unhedged, hedged = backtest_mod.compare_currency(fund, snapshot, days=args.days)
+    print(backtest_mod.format_currency_comparison(unhedged, hedged))
+    print()
+
     results = backtest_mod.compare_lags(fund, snapshot, days=args.days)
     if not results:
         raise RuntimeError("Backtesten kunne ikke kjøres for noen forsinkelse.")

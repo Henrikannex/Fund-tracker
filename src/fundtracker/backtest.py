@@ -141,7 +141,8 @@ def estimate_series(
 
 
 def gather_series(
-    fund: FundConfig, snapshot: HoldingsSnapshot, days: int
+    fund: FundConfig, snapshot: HoldingsSnapshot, days: int,
+    hedged: Optional[bool] = None,
 ) -> tuple[pd.Series, pd.Series]:
     """Estimated and actual daily returns, both date-indexed.
 
@@ -158,7 +159,7 @@ def gather_series(
             "kjenner, eller legg inn en CSV med kolonnene date,nav i nav_source.manual_file."
         )
 
-    estimated = estimate_series(fund, snapshot, start, end)
+    estimated = estimate_series(fund, snapshot, start, end, hedged)
     if estimated.empty:
         raise RuntimeError("Backtesten produserte ingen sammenlignbare dager.")
     return estimated, actual
@@ -198,6 +199,55 @@ def compare_lags(
         if not frame.empty:
             results.append(BacktestResult(fund.id, frame.tail(days), lag))
     return results
+
+
+def compare_currency(
+    fund: FundConfig, snapshot: HoldingsSnapshot, days: int = 250
+) -> tuple[BacktestResult, BacktestResult]:
+    """Score the model with and without the currency leg, against real NAV.
+
+    A NOK fund holding dollar assets sees its NAV move when the krone moves —
+    unless it hedges. Which of the two this fund does is settled by measuring
+    both against its published NAV, not by reasoning about it.
+    """
+    out = []
+    for hedged in (False, True):
+        estimated, actual = gather_series(fund, snapshot, days, hedged=hedged)
+        frame = align_lag(estimated, actual, 0)
+        if frame.empty:
+            raise RuntimeError("Ingen overlappende dager mellom estimat og faktisk NAV.")
+        out.append(BacktestResult(fund.id, frame.tail(days), 0))
+    return out[0], out[1]
+
+
+def format_currency_comparison(unhedged: BacktestResult, hedged: BacktestResult) -> str:
+    lines = [
+        f"Med og uten valuta, mot faktisk NAV ({unhedged.days} dager)",
+        "",
+        "                     snittfeil    skjevhet    treffer retning   korrelasjon",
+    ]
+    for label, r in (("med valuta", unhedged), ("uten valuta", hedged)):
+        lines.append(
+            f"  {label:<16} {r.mean_abs_error:>9.3f}   {r.bias:>+9.3f}   "
+            f"{r.direction_hit_rate:>13.1f} %   {r.correlation:>11.3f}"
+        )
+
+    better = unhedged if unhedged.mean_abs_error <= hedged.mean_abs_error else hedged
+    name = "med valuta" if better is unhedged else "uten valuta"
+    lines += [
+        "",
+        f"  {name.capitalize()} treffer best, med {better.mean_abs_error:.3f} %-poeng "
+        "i snittfeil.",
+    ]
+    if better is unhedged:
+        lines.append(
+            "  Fondet er altså ikke valutasikret, og valutaleddet skal være med."
+        )
+    else:
+        lines.append(
+            "  Fondet oppfører seg valutasikret; sett currency_hedged: true i konfigen."
+        )
+    return "\n".join(lines)
 
 
 def format_lag_comparison(results: list[BacktestResult]) -> str:
