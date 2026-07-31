@@ -25,6 +25,9 @@ from .models import HoldingsSnapshot
 from .sources import nav as nav_source
 from .sources import prices as price_source
 
+# A day where this much of the fund had no quote is not a day we can score.
+MAX_STALE_WEIGHT_PCT = 5.0
+
 
 @dataclass
 class BacktestResult:
@@ -96,19 +99,22 @@ def run_backtest(
 
     raw_prices = price_source.closing_prices(tickers, start, end)
     raw_fx = price_source.fx_to_base(sorted(currencies), fund.currency, start, end)
-    prices, staleness = price_source.align(raw_prices)
-    fx, _ = price_source.align(raw_fx)
+    prices, staleness, observed = price_source.align(raw_prices)
+    fx, _, _ = price_source.align(raw_fx)
 
     rows = []
     for ts, actual_pct in actual.items():
         day = ts.date()
         try:
-            est = estimate_return(fund, snapshot, day, prices, fx, staleness)
+            est = estimate_return(fund, snapshot, day, prices, fx, staleness, observed)
         except ValueError:
             continue
-        # Skip days where prices did not actually cover the target date; those
-        # measure our data plumbing, not the model.
+        # Skip days our data cannot actually speak to: no bar for the date, or a
+        # big chunk of the fund carried forward. Those measure the plumbing, not
+        # the model, and averaging them in would flatter the error statistics.
         if any("Ingen kursdata" in w for w in est.warnings):
+            continue
+        if est.stale_weight_pct > MAX_STALE_WEIGHT_PCT:
             continue
         rows.append(
             {

@@ -56,6 +56,9 @@ class Contribution:
     nok_return: float
     contribution_pct: float
     stale_price: bool = False
+    # True when this price was carried forward rather than quoted on the day,
+    # which makes the holding look flat when we simply do not know yet.
+    carried_forward: bool = False
 
 
 @dataclass
@@ -70,6 +73,8 @@ class Estimate:
     fx_contribution_pct: float
     fee_drag_pct: float
     coverage_pct: float
+    # Share of the fund whose price on the day was carried forward, not quoted.
+    stale_weight_pct: float
     cash_pct: Optional[float]
     snapshot_age_days: Optional[int]
     contributions: list[Contribution] = field(default_factory=list)

@@ -51,12 +51,22 @@ jobs:
           PYTHONPATH: src
 
       - name: Regn ut og send estimat
+        # Exit 3 betyr "for mange kurser mangler ennå". Det skjer hver dag på
+        # den av de to cron-tidene som ligger før amerikansk stengetid, og er
+        # et normalt utfall - ikke en feil. Alt annet skal velte kjøringen.
         run: |
+          set +e
           python -m fundtracker.cli estimate \
             "${{ inputs.fund || 'dnb-teknologi-a' }}" \
             ${{ inputs.date && format('--date {0}', inputs.date) || '' }} \
             --save --skip-if-logged \
             ${{ (github.event_name == 'schedule' || inputs.send_email) && '--email' || '' }}
+          status=$?
+          if [ $status -eq 3 ]; then
+            echo "Kurser ikke klare ennå - venter på neste kjøring."
+            exit 0
+          fi
+          exit $status
         env:
           PYTHONPATH: src
           SMTP_HOST: ${{ secrets.SMTP_HOST }}

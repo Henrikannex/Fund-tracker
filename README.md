@@ -26,6 +26,19 @@ Valutaleddet er ikke pynt. Fondet er i NOK, men eier Microsoft i USD, ADYEN i
 EUR, Ericsson i SEK og Sony i JPY. USDNOK kan bevege seg 0,7 % på en dag — mer
 enn de fleste aksjedager. Utelater man valuta, måler man feil ting.
 
+## Kurser som ikke finnes ennå
+
+Børser stenger på ulike tidspunkt, så en kurstabell har hull. Hullene fylles
+med forrige kjente kurs, fordi det er nettopp det fondet gjør: er Tokyo stengt,
+står Sony stille i NAV-en også.
+
+Men det er også slik en prognose lyver. Kjører man før amerikansk stengetid,
+får hver amerikansk post gårsdagens kurs videreført og bidrar pent 0,00 % — og
+overskriften ser helt normal ut. Derfor holder systemet rede på hvilke kurser
+som var *ekte observasjoner*, rapporterer hvor stor andel av fondet som ikke
+var det, og **nekter å sende estimatet** hvis andelen overstiger `--max-stale`
+(standard 5 %).
+
 ## Hva modellen ikke vet
 
 Tre antakelser, som er hele feilkilden:

@@ -90,22 +90,33 @@ def fx_to_base(currencies: list[str], base: str, start: date, end: date) -> pd.D
     return out
 
 
-def align(frame: pd.DataFrame, max_stale_days: int = 5) -> tuple[pd.DataFrame, pd.Series]:
-    """Forward-fill across non-trading days and report how stale each column is.
+def align(
+    frame: pd.DataFrame, max_stale_days: int = 5
+) -> tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
+    """Forward-fill across non-trading days, and record what was filled.
 
     Markets close on different days. A Tokyo holiday does not mean Sony's
     contribution is unknown — it means Sony's price did not move, which is
     exactly what the fund's NAV will reflect too. Forward-filling reproduces
-    that. The staleness count is returned separately so a genuinely dead feed
-    (delisted ticker, wrong symbol) can be distinguished from a public holiday.
+    that.
+
+    But forward-filling is also how a nowcast quietly lies. Run this before the
+    US close and every American holding gets yesterday's price carried forward,
+    producing a confident-looking 0.00 % for half the portfolio. So the mask of
+    which cells were *actually observed* is returned alongside the values, and
+    callers are expected to check it rather than trust the numbers blindly.
+
+    Returns ``(values, staleness_days, observed)``.
     """
     if frame.empty:
-        return frame, pd.Series(dtype="int64")
+        return frame, pd.Series(dtype="int64"), frame
 
-    filled = frame.sort_index().ffill(limit=max_stale_days)
-    last_real = frame.apply(lambda col: col.last_valid_index())
-    latest = frame.index.max()
+    ordered = frame.sort_index()
+    observed = ordered.notna()
+    filled = ordered.ffill(limit=max_stale_days)
+    last_real = ordered.apply(lambda col: col.last_valid_index())
+    latest = ordered.index.max()
     staleness = last_real.apply(
         lambda d: (latest - d).days if pd.notna(d) else 10**6
     ).astype("int64")
-    return filled, staleness
+    return filled, staleness, observed

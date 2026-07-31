@@ -37,11 +37,15 @@ def estimate_return(
     prices: pd.DataFrame,
     fx: pd.DataFrame,
     staleness: Optional[pd.Series] = None,
+    observed: Optional[pd.DataFrame] = None,
 ) -> Estimate:
     """Estimate ``fund``'s return for ``target``.
 
     ``prices`` and ``fx`` are date-indexed frames already forward-filled by
-    :func:`fundtracker.sources.prices.align`.
+    :func:`fundtracker.sources.prices.align`. ``observed`` is that function's
+    mask of which cells were real observations rather than carried forward; the
+    weight sitting behind carried-forward prices is reported on the result so
+    the caller can refuse to publish a half-stale number.
     """
     warnings: list[str] = []
     staleness = staleness if staleness is not None else pd.Series(dtype="int64")
@@ -82,6 +86,7 @@ def estimate_return(
                 nok_return=(1.0 + local) * (1.0 + fx_ret) - 1.0,
                 contribution_pct=0.0,  # filled in below, once weights are normalised
                 stale_price=int(staleness.get(mapping.ticker, 0)) > STALE_PRICE_WARN_DAYS,
+                carried_forward=not _was_observed(observed, curr_idx, mapping.ticker),
             )
         )
 
@@ -103,10 +108,9 @@ def estimate_return(
 
     fee = fund.daily_fee_drag
     return_pct = equity_return * equity_share * 100.0 - fee
+    stale_weight = sum(c.weight_pct for c in priced if c.carried_forward)
 
-    _collect_warnings(
-        warnings, fund, snapshot, covered, unpriced, priced, target, prices, curr_idx
-    )
+    _collect_warnings(warnings, snapshot, covered, unpriced, priced, target, stale_weight)
 
     return Estimate(
         fund_id=fund.id,
@@ -117,6 +121,7 @@ def estimate_return(
         fx_contribution_pct=fx_component * equity_share * 100.0,
         fee_drag_pct=fee,
         coverage_pct=covered,
+        stale_weight_pct=stale_weight,
         cash_pct=snapshot.cash_pct,
         snapshot_age_days=_snapshot_age(snapshot, target),
         contributions=priced,
@@ -189,6 +194,17 @@ def _cell(frame: pd.DataFrame, row: pd.Timestamp, col: str) -> Optional[float]:
     return float(value)
 
 
+def _was_observed(observed: Optional[pd.DataFrame], row: pd.Timestamp, col: str) -> bool:
+    """Whether this price was a real quote on that date, not carried forward.
+
+    Absent a mask we assume everything was observed, which keeps the pure
+    function usable with hand-built frames in tests.
+    """
+    if observed is None or col not in observed.columns or row not in observed.index:
+        return True
+    return bool(observed.at[row, col])
+
+
 def _snapshot_age(snapshot: HoldingsSnapshot, target: date) -> Optional[int]:
     """How stale the composition was on ``target``, in days.
 
@@ -204,15 +220,20 @@ def _snapshot_age(snapshot: HoldingsSnapshot, target: date) -> Optional[int]:
 
 def _collect_warnings(
     warnings: list[str],
-    fund: FundConfig,
     snapshot: HoldingsSnapshot,
     covered: float,
     unpriced: list[str],
     priced: list[Contribution],
     target: date,
-    prices: pd.DataFrame,
-    curr_idx: pd.Timestamp,
+    stale_weight: float,
 ) -> None:
+    if stale_weight > 0:
+        names = [c.ticker for c in priced if c.carried_forward]
+        warnings.append(
+            f"{_no(stale_weight)} % av fondet har ingen kurs for {target} - "
+            f"gårsdagens er videreført, så de bidrar 0,0 % uten at det er sant. "
+            f"Kjørte jobben før børsen stengte? Gjelder: {', '.join(sorted(names))}"
+        )
     if covered < COVERAGE_WARN_PCT:
         warnings.append(
             f"Estimatet dekker bare {_no(covered)} % av fondet. De resterende "

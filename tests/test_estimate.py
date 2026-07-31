@@ -177,6 +177,48 @@ def test_no_priced_holdings_is_an_error_not_a_zero():
         estimate_return(fund, snapshot, date(2026, 7, 30), prices, fx)
 
 
+def test_carried_forward_prices_are_reported_not_treated_as_a_flat_day():
+    """The failure that shipped: run before the US close and half the fund is
+    silently forward-filled to 0,00 %, while the headline number looks fine."""
+    fund = make_fund()
+    snapshot = make_snapshot([("Alpha", 60.0), ("Beta", 40.0)])
+    prices, fx = frames(alpha=(100.0, 100.0), beta=(50.0, 51.0))
+    # Alpha had no quote on day 1; its value was carried forward from day 0.
+    observed = pd.DataFrame({"ALPHA": [True, False], "BETA": [True, True]},
+                            index=[DAY0, DAY1])
+
+    est = estimate_return(fund, snapshot, date(2026, 7, 30), prices, fx, observed=observed)
+
+    assert est.stale_weight_pct == pytest.approx(60.0)
+    assert any("ingen kurs" in w for w in est.warnings)
+    assert [c.name for c in est.contributions if c.carried_forward] == ["Alpha"]
+
+
+def test_fully_observed_day_reports_no_stale_weight():
+    fund = make_fund()
+    snapshot = make_snapshot([("Alpha", 60.0), ("Beta", 40.0)])
+    prices, fx = frames()
+    observed = pd.DataFrame({"ALPHA": [True, True], "BETA": [True, True]},
+                            index=[DAY0, DAY1])
+
+    est = estimate_return(fund, snapshot, date(2026, 7, 30), prices, fx, observed=observed)
+
+    assert est.stale_weight_pct == 0.0
+    assert not any("ingen kurs" in w for w in est.warnings)
+
+
+def test_align_reports_which_cells_were_carried_forward():
+    from fundtracker.sources.prices import align
+
+    frame = pd.DataFrame({"A": [1.0, None], "B": [2.0, 3.0]}, index=[DAY0, DAY1])
+
+    values, _, observed = align(frame)
+
+    assert values.at[DAY1, "A"] == 1.0  # filled so the day still computes
+    assert not observed.at[DAY1, "A"]   # but flagged as not real
+    assert observed.at[DAY1, "B"]
+
+
 def test_source_supplied_ticker_is_used_when_config_has_none():
     """A feed that reports its own tickers should not need a hand-written map."""
     fund = make_fund(tickers={})

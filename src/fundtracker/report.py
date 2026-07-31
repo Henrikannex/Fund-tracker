@@ -41,6 +41,8 @@ def to_text(est: Estimate) -> str:
         f"  Forvaltningshonorar     {_pct(-est.fee_drag_pct, 4)}",
         "",
         f"Dekning: {_num(est.coverage_pct)} % av fondet"
+        + (f", {_num(est.stale_weight_pct)} % uten dagskurs"
+           if est.stale_weight_pct > 0 else "")
         + (f", kontanter {_num(est.cash_pct)} %" if est.cash_pct is not None else "")
         + (f", snapshot {est.snapshot_age_days} dager gammelt"
            if est.snapshot_age_days is not None else ""),
@@ -101,6 +103,8 @@ def to_html(est: Estimate) -> str:
     )
 
     meta = f"Dekning {_num(est.coverage_pct)} % av fondet"
+    if est.stale_weight_pct > 0:
+        meta += f" · {_num(est.stale_weight_pct)} % uten dagskurs"
     if est.cash_pct is not None:
         meta += f" · kontanter {_num(est.cash_pct)} %"
     if est.snapshot_age_days is not None:

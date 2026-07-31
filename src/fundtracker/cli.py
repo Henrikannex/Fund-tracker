@@ -8,6 +8,8 @@ import logging
 import sys
 from datetime import date, datetime, timedelta
 
+import pandas as pd
+
 from . import backtest as backtest_mod
 from . import notify, report
 from .config import list_funds, load_fund
@@ -32,6 +34,18 @@ def main(argv: list[str] | None = None) -> int:
     p_est.add_argument("--date", help="YYYY-MM-DD, standard er i dag")
     p_est.add_argument("--email", action="store_true", help="Send resultatet på e-post")
     p_est.add_argument("--save", action="store_true", help="Logg estimatet til data/estimates")
+    p_est.add_argument(
+        "--max-stale",
+        type=float,
+        default=5.0,
+        help="Avbryt hvis mer enn denne andelen av fondet mangler kurs for dagen. "
+        "Uten dette ville en kjøring før børsslutt gitt et selvsikkert, galt tall.",
+    )
+    p_est.add_argument(
+        "--allow-stale",
+        action="store_true",
+        help="Send estimatet selv om kurser mangler. Kun for feilsøking.",
+    )
     p_est.add_argument(
         "--skip-if-logged",
         action="store_true",
@@ -146,11 +160,26 @@ def cmd_estimate(args) -> int:
     start = target - timedelta(days=ESTIMATE_LOOKBACK_DAYS)
     raw_prices = price_source.closing_prices(tickers, start, target)
     raw_fx = price_source.fx_to_base(sorted(currencies), fund.currency, start, target)
-    prices, staleness = price_source.align(raw_prices)
-    fx, _ = price_source.align(raw_fx)
+    prices, staleness, observed = price_source.align(raw_prices)
+    fx, _, _ = price_source.align(raw_fx)
 
-    est = estimate_return(fund, snapshot, target, prices, fx, staleness)
+    if args.verbose:
+        with pd.option_context("display.max_columns", None, "display.width", 200):
+            print("\nSiste kursrader:\n", prices.tail(3), "\n")
+            print("Siste valutarader:\n", fx.tail(3), "\n")
+
+    est = estimate_return(fund, snapshot, target, prices, fx, staleness, observed)
     print(report.to_text(est))
+
+    if est.stale_weight_pct > args.max_stale and not args.allow_stale:
+        print(
+            f"\nAVBRUTT: {est.stale_weight_pct:.1f} % av fondet mangler kurs for "
+            f"{target}, over grensen på {args.max_stale:.1f} %. Estimatet ville vært "
+            "misvisende, så det logges ikke og sendes ikke. Kjør etter at børsen "
+            "har stengt, eller bruk --allow-stale.",
+            file=sys.stderr,
+        )
+        return 3
 
     if args.save:
         _append_estimate(fund, est)
