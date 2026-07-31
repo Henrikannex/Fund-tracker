@@ -221,6 +221,11 @@ def cmd_validate(args) -> int:
     print(validate_mod.format_validation(
         hedged if fund.currency_hedged else unhedged, as_of
     ))
+
+    week = (fund.benchmarks.get("periods") or {}).get("1u")
+    if week is not None:
+        print()
+        print(validate_mod.format_window_sweep(fund, snapshot, as_of, float(week)))
     return 0
 
 

@@ -169,17 +169,69 @@ def _verdict(unhedged: list[PeriodCheck], hedged: list[PeriodCheck]) -> str:
     a, b = score(unhedged), score(hedged)
     if a is None or b is None:
         return "  For lite data til å avgjøre valutaspørsmålet."
+
+    best = min(a, b)
+    # Declaring a winner only makes sense if the winner is actually right. When
+    # both are far off, the better one is merely less wrong, and calling it the
+    # answer would send us looking in the wrong place.
+    if best > 1.0:
+        return (
+            f"  Begge tar feil (usikret {a:.2f}, sikret {b:.2f} %-poeng snittavvik "
+            "på korte vinduer).\n"
+            "  Valuta er altså ikke hovedforklaringen - feilen ligger et annet sted."
+        )
     if abs(a - b) < 0.3:
         return (
             f"  Ingen tydelig forskjell (usikret {a:.2f}, sikret {b:.2f} %-poeng "
-            "snittavvik). Valuta forklarer ikke bommen - se andre steder."
+            "snittavvik). Valuta forklarer ikke bommen."
         )
     winner, loser = ("sikret", "usikret") if b < a else ("usikret", "sikret")
     return (
-        f"  {winner.capitalize()} passer klart best: {min(a, b):.2f} mot "
+        f"  {winner.capitalize()} passer klart best: {best:.2f} mot "
         f"{max(a, b):.2f} %-poeng i snittavvik på korte vinduer.\n"
         f"  Fondet oppfører seg altså som et {winner} fond, ikke et {loser}."
     )
+
+
+def format_window_sweep(
+    fund: FundConfig, snapshot: HoldingsSnapshot, as_of: date,
+    published_week_pct: float, window: int = 5, span: int = 12,
+) -> str:
+    """Show daily estimates, and every 5-day window's total, around the anchor.
+
+    The published one-week figure is a single number; the question is which five
+    trading days actually produced it. Printing the daily series and each
+    candidate window's total answers that directly, instead of assuming the
+    window ends on the date the fund page happens to display.
+    """
+    daily = estimate_series(
+        fund, snapshot, as_of - timedelta(days=span * 3), as_of + timedelta(days=3)
+    )
+    if daily.empty:
+        return "Ingen daglige estimater å vise."
+
+    daily = daily.tail(span)
+    lines = ["Daglige estimater rundt måledatoen:", ""]
+    for ts, value in daily.items():
+        marker = "  <- måledato" if ts.date() == as_of else ""
+        lines.append(f"  {ts.date()}   {value:>+7.2f} %{marker}")
+
+    lines += [
+        "",
+        f"Sammenkjedet over {window} dager, per sluttdato "
+        f"(fasit {published_week_pct:+.2f} %):",
+        "",
+    ]
+    values = list(daily.items())
+    for i in range(window - 1, len(values)):
+        end_ts = values[i][0]
+        chunk = pd.Series([v for _, v in values[i - window + 1:i + 1]])
+        total = _compound(chunk)
+        lines.append(
+            f"  til {end_ts.date()}   {total:>+7.2f} %   "
+            f"avvik {total - published_week_pct:>+6.2f}"
+        )
+    return "\n".join(lines)
 
 
 def format_validation(checks: list[PeriodCheck], as_of: date) -> str:
