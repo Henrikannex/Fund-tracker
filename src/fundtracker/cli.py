@@ -35,6 +35,12 @@ def main(argv: list[str] | None = None) -> int:
     p_est.add_argument("--email", action="store_true", help="Send resultatet på e-post")
     p_est.add_argument("--save", action="store_true", help="Logg estimatet til data/estimates")
     p_est.add_argument(
+        "--latest",
+        action="store_true",
+        help="Bruk siste dag det finnes fullstendige kurser for, i stedet for å "
+        "avbryte fordi dagens børsdag ikke er ferdig.",
+    )
+    p_est.add_argument(
         "--max-stale",
         type=float,
         default=5.0,
@@ -170,6 +176,12 @@ def cmd_estimate(args) -> int:
             print("Siste valutarader:\n", fx.tail(3), "\n")
 
     est = estimate_return(fund, snapshot, target, prices, fx, staleness, observed)
+
+    if args.latest and est.stale_weight_pct > args.max_stale:
+        est = _latest_complete(
+            fund, snapshot, target, prices, fx, staleness, observed, args.max_stale
+        ) or est
+
     print(report.to_text(est))
 
     if est.stale_weight_pct > args.max_stale and not args.allow_stale:
@@ -202,6 +214,28 @@ def cmd_backtest(args) -> int:
     print()
     print(backtest_mod.format_report(best))
     return 0
+
+
+def _latest_complete(
+    fund, snapshot, target, prices, fx, staleness, observed, max_stale, back=7
+):
+    """Walk back to the most recent day every market had actually closed.
+
+    Useful during the day, when today's estimate is mostly carried-forward
+    prices but yesterday's is complete.
+    """
+    candidates = [ts for ts in prices.index if ts <= pd.Timestamp(target)]
+    for ts in reversed(candidates[-back - 1:-1]):
+        try:
+            candidate = estimate_return(
+                fund, snapshot, ts.date(), prices, fx, staleness, observed
+            )
+        except ValueError:
+            continue
+        if candidate.stale_weight_pct <= max_stale:
+            log.info("Bruker %s, siste dag med fullstendige kurser.", ts.date())
+            return candidate
+    return None
 
 
 def _already_logged(fund, target: date) -> bool:
