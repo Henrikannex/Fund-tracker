@@ -53,8 +53,10 @@ nav_source:
 # selskap med flere lister (STM i Paris vs. New York), blir valutaleddet feil
 # selv om kursutviklingen er nesten identisk.
 #
-# Hovedregel brukt under: europeiske selskaper antas holdt på primærnoteringen
-# i Europa, ikke som ADR i USA. Dette bør verifiseres mot DNBs årsrapport.
+# Noteringene under er lest av landflaggene Nordnet viser ved hver beholdning,
+# 31.07.2026. Det avgjorde de seks tvetydige navnene: STM Frankrike, SAP
+# Tyskland, ASML Nederland, Nokia Finland, Sony USA (altså ADR-en, ikke
+# Tokyo-aksjen), og Samsung som allerede het GDR i navnet.
 tickers:
   # --- USA, USD. Disse er entydige. ---
   Microsoft:                   {ticker: MSFT,      currency: USD}
@@ -84,11 +86,14 @@ tickers:
   Nokia:                       {ticker: NOKIA.HE,  currency: EUR}
   Nordic Semiconductor:        {ticker: NOD.OL,    currency: NOK}
 
-  # --- Asia ---
+  # --- Asiatiske selskaper, men ikke asiatiske noteringer ---
   # Navnet sier eksplisitt GDR Reg S, altså London-noteringen i USD,
-  # ikke Seoul-aksjen. Denne er derfor entydig.
+  # ikke Seoul-aksjen.
   Samsung Electr-Gdr Reg S:    {ticker: SMSN.IL,   currency: USD}
-  Sony Group Corporation:      {ticker: 6758.T,    currency: JPY}
+  # Amerikansk flagg på Nordnet, altså ADR-en i New York. Det er ikke bare et
+  # valutaspørsmål: Tokyo stenger 08:00 norsk tid, New York 22:00. ADR-en
+  # prises altså på samme klokkeslett som resten av fondet.
+  Sony Group Corporation:      {ticker: SONY,      currency: USD}
 
 # Navn som med vilje ikke prises (kontanter, derivater, pengemarked).
 # Vekten deres holdes utenfor aksjeavkastningen.
