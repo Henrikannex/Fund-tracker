@@ -33,6 +33,7 @@ MAX_STALE_WEIGHT_PCT = 5.0
 class BacktestResult:
     fund_id: str
     frame: pd.DataFrame  # date-indexed: estimated_pct, actual_pct, error_pct
+    lag: int = 0
 
     @property
     def days(self) -> int:
@@ -83,8 +84,16 @@ class BacktestResult:
 
 
 def run_backtest(
-    fund: FundConfig, snapshot: HoldingsSnapshot, days: int = 250
+    fund: FundConfig, snapshot: HoldingsSnapshot, days: int = 250, lag: int = 0
 ) -> BacktestResult:
+    """Score the model against published NAV.
+
+    ``lag`` says how many trading days the fund's published NAV trails the
+    closes we price against. A fund whose valuation point falls before the US
+    close cannot reflect that day's American prices, so its NAV for day T lines
+    up with our estimate for T-1. Which is true here is not something to guess
+    at — :func:`compare_lags` measures it.
+    """
     end = date.today()
     start = end - timedelta(days=int(days * 1.6) + 15)  # calendar days for ~`days` sessions
 
@@ -102,8 +111,8 @@ def run_backtest(
     prices, staleness, observed = price_source.align(raw_prices)
     fx, _, _ = price_source.align(raw_fx)
 
-    rows = []
-    for ts, actual_pct in actual.items():
+    estimates = {}
+    for ts in actual.index:
         day = ts.date()
         try:
             est = estimate_return(fund, snapshot, day, prices, fx, staleness, observed)
@@ -116,25 +125,91 @@ def run_backtest(
             continue
         if est.stale_weight_pct > MAX_STALE_WEIGHT_PCT:
             continue
-        rows.append(
-            {
-                "date": ts,
-                "estimated_pct": est.return_pct,
-                "actual_pct": float(actual_pct),
-                "error_pct": est.return_pct - float(actual_pct),
-            }
-        )
+        estimates[ts] = est.return_pct
 
-    if not rows:
+    if not estimates:
         raise RuntimeError("Backtesten produserte ingen sammenlignbare dager.")
 
-    frame = pd.DataFrame(rows).set_index("date").sort_index().tail(days)
-    return BacktestResult(fund_id=fund.id, frame=frame)
+    estimated = pd.Series(estimates, dtype="float64").sort_index()
+    frame = align_lag(estimated, actual, lag)
+    if frame.empty:
+        raise RuntimeError("Ingen overlappende dager mellom estimat og faktisk NAV.")
+    return BacktestResult(fund_id=fund.id, frame=frame.tail(days), lag=lag)
+
+
+def align_lag(estimated: pd.Series, actual: pd.Series, lag: int) -> pd.DataFrame:
+    """Pair each estimate with the NAV move published ``lag`` trading days later.
+
+    Shifting by position rather than by calendar days matters: weekends and
+    holidays are not trading days, so "the next published NAV" is the next row,
+    not tomorrow's date.
+    """
+    aligned = actual.sort_index()
+    shifted = aligned.shift(-lag) if lag else aligned
+    frame = pd.DataFrame(
+        {"estimated_pct": estimated.sort_index(), "actual_pct": shifted}
+    ).dropna()
+    frame["error_pct"] = frame["estimated_pct"] - frame["actual_pct"]
+    return frame
+
+
+def compare_lags(
+    fund: FundConfig, snapshot: HoldingsSnapshot, days: int = 250,
+    lags: tuple[int, ...] = (0, 1, 2),
+) -> list[BacktestResult]:
+    """Score the model at several lags so the data can settle the timing.
+
+    Nordnet lists a 09:00 order cut-off for this fund, which hints the valuation
+    point may sit before the US close — but a hint is not a fact. Whichever lag
+    fits best is the answer, and if none fits well the problem is the model, not
+    the alignment.
+    """
+    results = []
+    for lag in lags:
+        try:
+            results.append(run_backtest(fund, snapshot, days=days, lag=lag))
+        except RuntimeError:
+            continue
+    return results
+
+
+def format_lag_comparison(results: list[BacktestResult]) -> str:
+    """Which alignment between our estimate and the published NAV actually fits."""
+    if not results:
+        return "Ingen backtest kunne kjøres."
+
+    lines = [
+        "Hvilken dag treffer estimatet?",
+        "",
+        "  forsinkelse   dager    snittfeil   treffer retning   korrelasjon",
+    ]
+    for r in results:
+        label = {0: "samme dag", 1: "+1 dag", 2: "+2 dager"}.get(r.lag, f"+{r.lag} dager")
+        lines.append(
+            f"  {label:<12} {r.days:>6}   {r.mean_abs_error:>8.3f}   "
+            f"{r.direction_hit_rate:>13.1f} %   {r.correlation:>11.3f}"
+        )
+
+    best = max(results, key=lambda r: (r.correlation if pd.notna(r.correlation) else -9))
+    label = {0: "samme dag", 1: "én dag etter", 2: "to dager etter"}.get(
+        best.lag, f"{best.lag} dager etter"
+    )
+    lines += [
+        "",
+        f"  Best treff: NAV-en publiseres {label} kursene vi regner på.",
+    ]
+    if best.lag > 0:
+        lines.append(
+            "  Kveldsestimatet forutsier altså NAV-en som merkes neste handelsdag, "
+            "ikke dagens."
+        )
+    return "\n".join(lines)
 
 
 def format_report(result: BacktestResult) -> str:
     lines = [
-        f"Backtest for {result.fund_id} - {result.days} handelsdager",
+        f"Backtest for {result.fund_id} - {result.days} handelsdager, "
+        f"forsinkelse {result.lag}",
         "",
         f"  Gjennomsnittlig absolutt feil : {result.mean_abs_error:6.3f} %-poeng",
         f"  Systematisk skjevhet          : {result.bias:+6.3f} %-poeng"

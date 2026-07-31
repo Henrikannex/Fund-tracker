@@ -192,8 +192,15 @@ def cmd_estimate(args) -> int:
 def cmd_backtest(args) -> int:
     fund = load_fund(args.fund)
     snapshot = holdings_mod.load_holdings(fund)
-    result = backtest_mod.run_backtest(fund, snapshot, days=args.days)
-    print(backtest_mod.format_report(result))
+
+    results = backtest_mod.compare_lags(fund, snapshot, days=args.days)
+    if not results:
+        raise RuntimeError("Backtesten kunne ikke kjøres for noen forsinkelse.")
+    print(backtest_mod.format_lag_comparison(results))
+
+    best = max(results, key=lambda r: r.correlation if r.correlation == r.correlation else -9)
+    print()
+    print(backtest_mod.format_report(best))
     return 0
 
 

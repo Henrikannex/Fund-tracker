@@ -124,11 +124,11 @@ def _parse_csv(text: str) -> Iterable[Holding]:
 
 
 def _from_nordnet(fund: FundConfig, spec: dict[str, Any]) -> HoldingsSnapshot:
-    instrument_id = spec.get("instrument_id")
+    instrument_id = resolve_instrument_id(fund)
     if not instrument_id:
         raise ValueError(
-            "holdings_source.instrument_id er ikke satt. Finn den i Nordnet-URL-en "
-            "til fondet (f.eks. .../market/funds/16802428) og legg den i konfigen."
+            "Fant ingen Nordnet instrument-id, verken i konfigen eller ved oppslag "
+            f"på ISIN {fund.isin}."
         )
 
     session = _session()
@@ -164,6 +164,70 @@ def _from_nordnet(fund: FundConfig, spec: dict[str, Any]) -> HoldingsSnapshot:
         last_error = f"{url}: JSON uten gjenkjennelige beholdninger"
 
     raise RuntimeError(f"Ingen Nordnet-endepunkter ga beholdninger. Siste feil: {last_error}")
+
+
+# Nordnet's public fund URLs carry a text slug, not the numeric instrument id
+# their API wants. Looking it up by ISIN keeps the config free of magic numbers
+# and works for any fund without the user having to go hunting.
+NORDNET_SEARCH_ENDPOINTS = [
+    "https://www.nordnet.no/api/2/instrument_search/query/fundlist?apply_filters=isin%3D{isin}",
+    "https://www.nordnet.no/api/2/main_search?query={isin}&search_space=ALL&limit=10",
+    "https://www.nordnet.no/api/2/instruments?query={isin}",
+]
+
+_ID_KEYS = ("instrument_id", "instrumentId", "identifier", "id")
+
+
+def resolve_instrument_id(fund: FundConfig) -> Optional[str]:
+    """The configured instrument id, or one looked up from the fund's ISIN."""
+    configured = (fund.holdings_source or {}).get("instrument_id")
+    if configured:
+        return str(configured)
+    found = lookup_instrument_id(fund.isin)
+    if found:
+        log.info("Slo opp Nordnet instrument-id %s for ISIN %s", found, fund.isin)
+    return found
+
+
+def lookup_instrument_id(isin: str) -> Optional[str]:
+    session = _session()
+    for template in NORDNET_SEARCH_ENDPOINTS:
+        url = template.format(isin=isin)
+        try:
+            response = session.get(url, timeout=TIMEOUT)
+            response.raise_for_status()
+            payload = response.json()
+        except Exception as exc:  # noqa: BLE001 - candidate probing
+            log.debug("ISIN-oppslag %s feilet: %s", url, exc)
+            continue
+        found = _find_instrument_id(payload, isin)
+        if found:
+            return found
+    return None
+
+
+def _find_instrument_id(node: Any, isin: str) -> Optional[str]:
+    """Find the id on whichever object actually carries our ISIN.
+
+    Search responses contain several instruments; matching on the ISIN rather
+    than grabbing the first id avoids silently tracking the wrong share class.
+    """
+    if isinstance(node, dict):
+        if str(node.get("isin") or node.get("isin_code") or "").upper() == isin.upper():
+            for key in _ID_KEYS:
+                value = node.get(key)
+                if isinstance(value, (int, str)) and str(value).strip():
+                    return str(value)
+        for child in node.values():
+            found = _find_instrument_id(child, isin)
+            if found:
+                return found
+    elif isinstance(node, list):
+        for child in node:
+            found = _find_instrument_id(child, isin)
+            if found:
+                return found
+    return None
 
 
 def _session() -> requests.Session:
@@ -269,11 +333,11 @@ def probe_all(fund: FundConfig) -> list[tuple[str, list[tuple[str, str]]]]:
         else [("-", "morningstar_secid ikke satt i konfigen")],
     ))
 
-    instrument_id = spec.get("instrument_id")
+    instrument_id = resolve_instrument_id(fund)
     out.append((
         "Nordnet",
         probe_nordnet(str(instrument_id)) if instrument_id
-        else [("-", "instrument_id ikke satt i konfigen")],
+        else [(f"ISIN-oppslag {fund.isin}", "fant ingen instrument-id")],
     ))
     return out
 
