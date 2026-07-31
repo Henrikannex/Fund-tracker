@@ -1,14 +1,13 @@
-# Faktisk NAV for DNB Teknologi A, hentet fra DNBs kurshistorikk 31.07.2026.
+# Faktisk NAV for DNB Teknologi A.
 #
-# 05.05 til 23.07 er avleste kurser. 24.07, 27.07 og 28.07 er regnet ut fra
-# Nordnets ukesgraf med 22.07 (6707.50) som base, siden kurstabellen stoppet
-# ved 23.07. 29.07 er den publiserte kursen.
+# Hele juli er eksakte kurser fra DNBs kurstabell. Mai og juni er avlest fra
+# samme kilde, men fra skjermbilder der enkeltrader kan ha falt utenfor - 17.07
+# manglet på den måten og ble oppdaget først da hele juli ble hentet på nytt.
+# Mangler backtesten dager i mai eller juni, er det trolig samme årsak, og da
+# spenner den påfølgende raden over to dager i stedet for én.
 #
-# Kontroll: den samme utregningen ga 6536.41 for 23.07 før fasit var kjent.
-# Kurstabellen sier 6536.23 - et avvik på 0,003 %, så metoden er til å stole på.
-#
-# Dager som mangler er dager fondet ikke satte kurs: 14.05 og 25.05 er norske
-# helligdager, og 03.07, 17.07 og 19.06 er dager uten kursfastsettelse.
+# Verdt å merke seg for tilliten til metoden: 23.07 ble regnet baklengs fra
+# Nordnets ukesgraf til 6536.41 før fasit fantes. Tabellen sier 6536.229.
 date,nav
 2026-05-05,6471.06
 2026-05-06,6528.21
@@ -47,22 +46,24 @@ date,nav
 2026-06-26,6704.75
 2026-06-29,6785.28
 2026-06-30,6789.03
-2026-07-01,6896.91
-2026-07-02,6858.11
-2026-07-06,6922.52
-2026-07-07,6904.76
-2026-07-08,6834.13
-2026-07-09,6899.98
-2026-07-10,6945.97
-2026-07-13,6980.05
-2026-07-14,6841.85
-2026-07-15,6918.76
-2026-07-16,6879.97
-2026-07-20,6857.48
-2026-07-21,6793.54
-2026-07-22,6707.50
-2026-07-23,6536.23
-2026-07-24,6592.13
-2026-07-27,6780.61
-2026-07-28,6922.81
-2026-07-29,6906.66
+2026-07-01,6896.910
+2026-07-02,6858.105
+2026-07-06,6922.515
+2026-07-07,6904.755
+2026-07-08,6834.128
+2026-07-09,6899.984
+2026-07-10,6945.970
+2026-07-13,6980.051
+2026-07-14,6841.846
+2026-07-15,6918.764
+2026-07-16,6879.967
+2026-07-17,6801.987
+2026-07-20,6857.484
+2026-07-21,6793.540
+2026-07-22,6707.500
+2026-07-23,6536.229
+2026-07-24,6592.047
+2026-07-27,6780.933
+2026-07-28,6922.594
+2026-07-29,6906.658
+2026-07-30,6916.083
