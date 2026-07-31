@@ -159,6 +159,17 @@ def cmd_probe(args) -> int:
     return 0
 
 
+def _price_context(fund, snapshot, target: date):
+    """Fetch and align everything needed to estimate a single day."""
+    tickers, currencies = priced_tickers(fund, snapshot)
+    start = target - timedelta(days=ESTIMATE_LOOKBACK_DAYS)
+    raw_prices = price_source.closing_prices(tickers, start, target)
+    raw_fx = price_source.fx_to_base(sorted(currencies), fund.currency, start, target)
+    prices, staleness, observed = price_source.align(raw_prices)
+    fx, _, _ = price_source.align(raw_fx)
+    return prices, fx, staleness, observed
+
+
 def cmd_estimate(args) -> int:
     fund = load_fund(args.fund)
     target = datetime.strptime(args.date, "%Y-%m-%d").date() if args.date else date.today()
@@ -168,14 +179,7 @@ def cmd_estimate(args) -> int:
         return 0
 
     snapshot = holdings_mod.load_holdings(fund)
-
-    tickers, currencies = priced_tickers(fund, snapshot)
-
-    start = target - timedelta(days=ESTIMATE_LOOKBACK_DAYS)
-    raw_prices = price_source.closing_prices(tickers, start, target)
-    raw_fx = price_source.fx_to_base(sorted(currencies), fund.currency, start, target)
-    prices, staleness, observed = price_source.align(raw_prices)
-    fx, _, _ = price_source.align(raw_fx)
+    prices, fx, staleness, observed = _price_context(fund, snapshot, target)
 
     if args.verbose:
         with pd.option_context("display.max_columns", None, "display.width", 200):
@@ -226,7 +230,38 @@ def cmd_validate(args) -> int:
     if week is not None:
         print()
         print(validate_mod.format_window_sweep(fund, snapshot, as_of, float(week)))
+
+    _explain_worst_day(fund, snapshot, as_of)
     return 0
+
+
+def _explain_worst_day(fund, snapshot, as_of: date, span: int = 12) -> None:
+    """Break down the largest single-day move near the anchor.
+
+    One bad price in one holding can wreck a whole period, and it shows up as a
+    day whose size no market move explains. Printing that day's contributions
+    names the culprit instead of leaving us to guess which ticker it was.
+    """
+    daily = backtest_mod.estimate_series(
+        fund, snapshot, as_of - timedelta(days=span * 3), as_of
+    ).tail(span)
+    if daily.empty:
+        return
+
+    worst = daily.abs().idxmax()
+    print()
+    print(f"Største enkeltdag i vinduet er {worst.date()} "
+          f"({daily[worst]:+.2f} %). Fordelt på beholdninger:")
+    print()
+
+    prices, fx, staleness, observed = _price_context(fund, snapshot, worst.date())
+    est = estimate_return(
+        fund, snapshot, worst.date(), prices, fx, staleness, observed
+    )
+    for c in sorted(est.contributions, key=lambda c: c.contribution_pct):
+        print(f"  {c.name:<28} {c.ticker:<10} vekt {c.weight_pct:>5.2f} %"
+              f"   kurs {c.local_return * 100:>+8.2f} %"
+              f"   bidrag {c.contribution_pct:>+7.3f} %")
 
 
 def cmd_backtest(args) -> int:
