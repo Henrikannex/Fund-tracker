@@ -7,7 +7,9 @@ the repo. In GitHub Actions these come from repository secrets.
     SMTP_PORT      default 587 (STARTTLS); 465 switches to implicit TLS
     SMTP_USER      the sending account, e.g. you@gmail.com
     SMTP_PASSWORD  a Gmail *app password*, not the account password
-    MAIL_TO        recipient; defaults to SMTP_USER
+    MAIL_TO        one or more recipients, separated by comma or semicolon;
+                   defaults to SMTP_USER
+    MAIL_BCC       optional extra recipients, hidden from the others
     MAIL_FROM      defaults to SMTP_USER
 """
 
@@ -25,6 +27,19 @@ class NotConfigured(RuntimeError):
     """Raised when the SMTP environment is incomplete."""
 
 
+def parse_recipients(raw: str | None) -> list[str]:
+    """Split a recipient list on commas or semicolons.
+
+    Semicolons are accepted because that is what Outlook puts on the clipboard,
+    and a secret pasted from there would otherwise become one nonsense address
+    that the mail server quietly refuses.
+    """
+    if not raw:
+        return []
+    parts = raw.replace(";", ",").split(",")
+    return [p.strip() for p in parts if p.strip()]
+
+
 def send_email(subject: str, text_body: str, html_body: str | None = None) -> None:
     host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
     port = int(os.environ.get("SMTP_PORT", "587"))
@@ -35,10 +50,15 @@ def send_email(subject: str, text_body: str, html_body: str | None = None) -> No
     if missing:
         raise NotConfigured(f"Mangler miljøvariabler: {', '.join(missing)}")
 
+    to = parse_recipients(os.environ.get("MAIL_TO")) or [user]
+    bcc = parse_recipients(os.environ.get("MAIL_BCC"))
+
     message = EmailMessage()
     message["Subject"] = subject
     message["From"] = os.environ.get("MAIL_FROM", user)
-    message["To"] = os.environ.get("MAIL_TO", user)
+    message["To"] = ", ".join(to)
+    if bcc:
+        message["Bcc"] = ", ".join(bcc)
     message.set_content(text_body)
     if html_body:
         message.add_alternative(html_body, subtype="html")
@@ -53,4 +73,4 @@ def send_email(subject: str, text_body: str, html_body: str | None = None) -> No
             smtp.login(user, password)
             smtp.send_message(message)
 
-    log.info("Sendte e-post til %s", message["To"])
+    log.info("Sendte e-post til %d mottaker(e)", len(to) + len(bcc))

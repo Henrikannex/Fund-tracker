@@ -128,7 +128,8 @@ Sendes via SMTP med disse miljøvariablene, lagt inn som GitHub-secrets:
 |---|---|
 | `SMTP_USER` | Gmail-adressen som sender |
 | `SMTP_PASSWORD` | Gmail **app-passord** (ikke kontopassordet) |
-| `MAIL_TO` | mottaker, standard er `SMTP_USER` |
+| `MAIL_TO` | mottaker(e), standard er `SMTP_USER`. Flere skilles med komma |
+| `MAIL_BCC` | valgfritt, mottakere som ikke ser hverandre |
 | `SMTP_HOST` | valgfritt, standard `smtp.gmail.com` |
 | `SMTP_PORT` | valgfritt, standard `587` |
 
