@@ -20,7 +20,7 @@ from datetime import date, timedelta
 import pandas as pd
 
 from .config import FundConfig
-from .estimate import estimate_return
+from .estimate import estimate_return, priced_tickers
 from .models import HoldingsSnapshot
 from .sources import nav as nav_source
 from .sources import prices as price_source
@@ -92,12 +92,7 @@ def run_backtest(
             "kjenner, eller legg inn en CSV med kolonnene date,nav i nav_source.manual_file."
         )
 
-    tickers, currencies = [], {fund.currency}
-    for holding in snapshot.holdings:
-        mapping = fund.resolve(holding.name)
-        if mapping:
-            tickers.append(mapping.ticker)
-            currencies.add(mapping.currency)
+    tickers, currencies = priced_tickers(fund, snapshot)
 
     raw_prices = price_source.closing_prices(tickers, start, end)
     raw_fx = price_source.fx_to_base(sorted(currencies), fund.currency, start, end)

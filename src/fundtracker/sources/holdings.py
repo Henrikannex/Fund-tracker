@@ -47,21 +47,47 @@ WEIGHT_KEYS = ("weight", "weight_pct", "percentage", "share", "weighting", "perc
 
 
 def load_holdings(fund: FundConfig) -> HoldingsSnapshot:
-    """Fetch holdings using whatever source the fund config asks for."""
+    """Fetch holdings using whatever source the fund config asks for.
+
+    ``type: auto`` walks the remote sources in order of preference and falls
+    back to the checked-in CSV. That fallback is the point: the composition only
+    changes monthly, so a scraper outage costs us nothing as long as the file is
+    reasonably current.
+    """
     spec = fund.holdings_source or {}
     kind = (spec.get("type") or "manual").lower()
 
     if kind == "manual":
         return _from_manual(fund, spec)
-    if kind == "nordnet":
+
+    if kind == "auto":
+        order = spec.get("order") or ["morningstar", "nordnet"]
+    else:
+        order = [kind]
+
+    failures: list[str] = []
+    for name in order:
+        loader = _REMOTE_LOADERS.get(name)
+        if loader is None:
+            raise ValueError(f"Ukjent holdings_source.type: {name!r}")
         try:
-            return _from_nordnet(fund, spec)
+            return loader(fund, spec)
         except Exception as exc:  # noqa: BLE001 - fallback must survive anything
-            log.warning("Nordnet-henting feilet (%s); faller tilbake til manuell fil", exc)
-            snap = _from_manual(fund, spec)
-            snap.source = f"manual (Nordnet feilet: {exc})"
-            return snap
-    raise ValueError(f"Ukjent holdings_source.type: {kind!r}")
+            log.warning("Kilde %s feilet: %s", name, exc)
+            failures.append(f"{name}: {exc}")
+
+    snapshot = _from_manual(fund, spec)
+    snapshot.source = f"manual (fjernkilder feilet - {'; '.join(failures)})"
+    return snapshot
+
+
+def _from_morningstar(fund: FundConfig, spec: dict[str, Any]) -> HoldingsSnapshot:
+    from . import morningstar
+
+    sec_id = spec.get("morningstar_secid")
+    if not sec_id:
+        raise ValueError("holdings_source.morningstar_secid er ikke satt")
+    return morningstar.fetch_holdings(fund.id, str(sec_id))
 
 
 def _from_manual(fund: FundConfig, spec: dict[str, Any]) -> HoldingsSnapshot:
@@ -224,12 +250,36 @@ def _deep_get(node: Any, key: str) -> Any:
     return None
 
 
-def probe_nordnet(instrument_id: str) -> list[tuple[str, str]]:
-    """Try every candidate endpoint and report what came back.
+def probe_all(fund: FundConfig) -> list[tuple[str, list[tuple[str, str]]]]:
+    """Try every configured remote source and report exactly what answered.
 
-    Run this from somewhere with real network access (a GitHub Actions run is
-    fine) to find out which shape Nordnet actually serves today.
+    This exists because none of these endpoints are documented or promised. The
+    only honest way to know which one works is to call it from a machine with
+    real network access and read the result.
     """
+    from . import morningstar
+
+    spec = fund.holdings_source or {}
+    out: list[tuple[str, list[tuple[str, str]]]] = []
+
+    sec_id = spec.get("morningstar_secid")
+    out.append((
+        "Morningstar",
+        morningstar.probe(str(sec_id)) if sec_id
+        else [("-", "morningstar_secid ikke satt i konfigen")],
+    ))
+
+    instrument_id = spec.get("instrument_id")
+    out.append((
+        "Nordnet",
+        probe_nordnet(str(instrument_id)) if instrument_id
+        else [("-", "instrument_id ikke satt i konfigen")],
+    ))
+    return out
+
+
+def probe_nordnet(instrument_id: str) -> list[tuple[str, str]]:
+    """Try every candidate Nordnet endpoint and report what came back."""
     session = _session()
     results: list[tuple[str, str]] = []
     for template in NORDNET_ENDPOINTS:
@@ -265,6 +315,12 @@ def _as_of_from_spec(spec: dict[str, Any]) -> Optional[date]:
         except ValueError:
             return None
     return None
+
+
+_REMOTE_LOADERS = {
+    "morningstar": _from_morningstar,
+    "nordnet": _from_nordnet,
+}
 
 
 def _resolve(rel: str) -> Path:

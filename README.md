@@ -63,6 +63,35 @@ Grupperer man feilen etter hvor langt tilbake dagen ligger, skiller de to seg:
 - flat kurve → ferskhet betyr lite, det holder å scrape månedlig
 - stigende kurve → hellingen sier hvor ofte det er verdt å hente nye data
 
+## Hvor vektene kan komme fra
+
+Kartlagt, ikke verifisert — ingen av disse kunne testes fra utviklingsmiljøet.
+Kjør `probe` for å se hva som faktisk svarer.
+
+| Kilde | Ferskhet | Komplett | Merknad |
+|---|---|---|---|
+| **Manuell CSV** | så fersk du gjør den | ja | Virker i dag. Endres månedlig, så ~2 min i måneden. |
+| **Morningstar SAL** | kilden Nordnet lisensierer fra | topp-N gratis | Gir ticker + valuta per post. Udokumentert. `secid F0GBR04NGU` |
+| **Nordnet** | Morningstar + eget etterslep | topp-N | Ingen dokumentert API. Cloudflare foran. |
+| **DNB månedsrapport** | ~5-10 virkedager | ja | Trolig PDF. Mest arbeid, ferskest. |
+| **DNB årsrapport** | halvårlig | ja | For treg til drift, men fasit på *hvilken notering* fondet eier. |
+| **Kommersielle API-er** | daglig | ja | FMP, Finnworlds m.fl. Koster penger for et fond. |
+
+Poenget som gjør valget lett: **beholdningene endres bare månedlig**. Et
+snapshot fra i går og et fra forrige måned gir nesten samme dagsestimat, fordi
+det er *sammensetningen* som teller og DNB Teknologi handler lite. Ferskhet er
+den fjerde største feilkilden, etter valuta, manglende hale og usynlige
+handler. Derfor er manuell CSV startpunktet, og `auto` finnes for den dagen
+`probe` viser at en fjernkilde faktisk holder.
+
+### Alternativet vi ikke valgte
+
+Man trenger strengt tatt ikke beholdningene i det hele tatt. Regresjon av
+fondets NAV-historikk mot noen få likvide ETF-er og USDNOK gir en
+replikerende portefølje som oppdaterer seg selv og fanger opp forvalters
+handler uten å se dem. Ulempen er at den ikke kan si *hvorfor* — ingen
+«Microsoft trakk opp i dag». Verdt å ha som kryssjekk hvis backtesten skuffer.
+
 ## Oppsett
 
 ### Fondskonfigurasjon
@@ -107,11 +136,12 @@ scraping og backtest mot ekte nett.
 
 | Del | Tilstand |
 |---|---|
-| Avkastningsmodell med valuta og gebyr | Ferdig, dekket av tester |
-| Beholdninger fra manuell CSV | Virker |
-| Beholdninger fra Nordnet | Skrevet, endepunkt ikke verifisert — kjør `probe` |
+| Avkastningsmodell med valuta og gebyr | Ferdig, 16 tester |
+| Beholdninger fra manuell CSV | Virker — aktiv kilde |
+| Beholdninger fra Morningstar | Skrevet, ikke verifisert — kjør `probe` |
+| Beholdninger fra Nordnet | Skrevet, mangler `instrument_id` |
 | Kurser og valuta fra Yahoo | Skrevet, ikke verifisert mot ekte nett |
-| NAV-historikk til backtest | Yahoo-ticker gjettet, må verifiseres |
+| NAV-historikk til backtest | **Største risiko** — ingen bekreftet kilde |
 | E-post | Skrevet, mangler secrets |
 
 ### Åpne spørsmål

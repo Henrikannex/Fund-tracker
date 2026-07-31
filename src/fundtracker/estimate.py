@@ -22,8 +22,8 @@ from typing import Optional
 
 import pandas as pd
 
-from .config import FundConfig
-from .models import Contribution, Estimate, HoldingsSnapshot
+from .config import FundConfig, TickerMapping
+from .models import Contribution, Estimate, Holding, HoldingsSnapshot
 
 COVERAGE_WARN_PCT = 90.0
 SNAPSHOT_AGE_WARN_DAYS = 45
@@ -55,7 +55,7 @@ def estimate_return(
     for holding in snapshot.holdings:
         if fund.is_ignored(holding.name):
             continue
-        mapping = fund.resolve(holding.name)
+        mapping = resolve_holding(fund, holding)
         if mapping is None:
             unpriced.append(f"{holding.name} (ingen ticker konfigurert)")
             continue
@@ -123,6 +123,36 @@ def estimate_return(
         unpriced=unpriced,
         warnings=warnings,
     )
+
+
+def resolve_holding(fund: FundConfig, holding: Holding) -> Optional[TickerMapping]:
+    """Decide which price series to use for a holding.
+
+    The fund config wins over whatever the source supplied. A holdings feed can
+    hand us a ticker that is right for the company but wrong for the listing we
+    need — "ERIC B" instead of ERIC-B.ST — so a hand-checked override must never
+    be overruled by an automatic one.
+    """
+    override = fund.resolve(holding.name)
+    if override is not None:
+        return override
+    if holding.ticker and holding.currency:
+        return TickerMapping(holding.ticker, holding.currency.upper())
+    return None
+
+
+def priced_tickers(fund: FundConfig, snapshot: HoldingsSnapshot) -> tuple[list[str], set[str]]:
+    """Every ticker and currency the snapshot needs prices for."""
+    tickers: list[str] = []
+    currencies: set[str] = {fund.currency}
+    for holding in snapshot.holdings:
+        if fund.is_ignored(holding.name):
+            continue
+        mapping = resolve_holding(fund, holding)
+        if mapping:
+            tickers.append(mapping.ticker)
+            currencies.add(mapping.currency)
+    return tickers, currencies
 
 
 def _no(value: float, decimals: int = 1) -> str:

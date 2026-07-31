@@ -11,8 +11,9 @@ from datetime import date, datetime, timedelta
 from . import backtest as backtest_mod
 from . import notify, report
 from .config import list_funds, load_fund
-from .estimate import estimate_return
+from .estimate import estimate_return, priced_tickers, resolve_holding
 from .sources import holdings as holdings_mod
+from .sources import nav as nav_source
 from .sources import prices as price_source
 
 log = logging.getLogger("fundtracker")
@@ -95,11 +96,12 @@ def cmd_resolve(args) -> int:
     for holding in snapshot.holdings:
         if fund.is_ignored(holding.name):
             continue
-        mapping = fund.resolve(holding.name)
+        mapping = resolve_holding(fund, holding)
         if mapping:
             mapped += holding.weight_pct
+            origin = "konfig" if fund.resolve(holding.name) else "fra kilden"
             print(f"  OK      {holding.name:<30} {holding.weight_pct:>6.2f} %  "
-                  f"-> {mapping.ticker} ({mapping.currency})")
+                  f"-> {mapping.ticker} ({mapping.currency}) [{origin}]")
         else:
             unmapped.append(holding)
             print(f"  MANGLER {holding.name:<30} {holding.weight_pct:>6.2f} %")
@@ -110,12 +112,22 @@ def cmd_resolve(args) -> int:
 
 def cmd_probe(args) -> int:
     fund = load_fund(args.fund)
-    instrument_id = (fund.holdings_source or {}).get("instrument_id")
-    if not instrument_id:
-        print("holdings_source.instrument_id er ikke satt i konfigen.", file=sys.stderr)
-        return 2
-    for url, summary in holdings_mod.probe_nordnet(str(instrument_id)):
-        print(f"{url}\n    {summary}")
+    answered = False
+    for source_name, results in holdings_mod.probe_all(fund):
+        print(f"\n=== {source_name} ===")
+        for url, summary in results:
+            print(f"{url}\n    {summary}")
+            answered = answered or "beholdninger" in summary
+
+    print("\n=== NAV-historikk ===")
+    for label, summary in nav_source.probe(fund):
+        print(f"{label}\n    {summary}")
+
+    if not answered:
+        print(
+            "\nIngen kilde ga beholdninger. Den manuelle CSV-fila brukes videre.",
+            file=sys.stderr,
+        )
     return 0
 
 
@@ -129,12 +141,7 @@ def cmd_estimate(args) -> int:
 
     snapshot = holdings_mod.load_holdings(fund)
 
-    tickers, currencies = [], {fund.currency}
-    for holding in snapshot.holdings:
-        mapping = fund.resolve(holding.name)
-        if mapping:
-            tickers.append(mapping.ticker)
-            currencies.add(mapping.currency)
+    tickers, currencies = priced_tickers(fund, snapshot)
 
     start = target - timedelta(days=ESTIMATE_LOOKBACK_DAYS)
     raw_prices = price_source.closing_prices(tickers, start, target)

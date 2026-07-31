@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from fundtracker.config import FundConfig, TickerMapping
-from fundtracker.estimate import estimate_return
+from fundtracker.estimate import estimate_return, priced_tickers, resolve_holding
 from fundtracker.models import Holding, HoldingsSnapshot
 
 DAY0, DAY1 = pd.Timestamp("2026-07-29"), pd.Timestamp("2026-07-30")
@@ -175,6 +175,40 @@ def test_no_priced_holdings_is_an_error_not_a_zero():
 
     with pytest.raises(ValueError, match="kunne prises"):
         estimate_return(fund, snapshot, date(2026, 7, 30), prices, fx)
+
+
+def test_source_supplied_ticker_is_used_when_config_has_none():
+    """A feed that reports its own tickers should not need a hand-written map."""
+    fund = make_fund(tickers={})
+    holding = Holding("Gamma", 100.0, ticker="GAMMA", currency="usd")
+
+    mapping = resolve_holding(fund, holding)
+
+    assert mapping == TickerMapping("GAMMA", "USD")
+
+
+def test_config_ticker_overrides_the_one_from_the_source():
+    """Hand-checked listings must win; a feed's ticker can be the wrong listing."""
+    fund = make_fund(tickers={"Ericsson B": TickerMapping("ERIC-B.ST", "SEK")})
+    holding = Holding("Ericsson B", 100.0, ticker="ERIC B", currency="USD")
+
+    assert resolve_holding(fund, holding) == TickerMapping("ERIC-B.ST", "SEK")
+
+
+def test_partial_source_metadata_is_not_trusted():
+    """A ticker with no currency cannot be converted to NOK, so it is not usable."""
+    fund = make_fund(tickers={})
+    assert resolve_holding(fund, Holding("Gamma", 100.0, ticker="GAMMA")) is None
+
+
+def test_priced_tickers_skips_ignored_names():
+    fund = make_fund()
+    snapshot = make_snapshot([("Alpha", 60.0), ("Beta", 35.0), ("Kontanter", 5.0)])
+
+    tickers, currencies = priced_tickers(fund, snapshot)
+
+    assert sorted(tickers) == ["ALPHA", "BETA"]
+    assert currencies == {"USD", "NOK"}
 
 
 def test_snapshot_age_is_measured_against_as_of_when_known():
