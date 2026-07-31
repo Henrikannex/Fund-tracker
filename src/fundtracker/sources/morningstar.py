@@ -39,6 +39,90 @@ COMMON_PARAMS = {
 }
 
 
+# Morningstar's chart widgets read NAV history from a separate host with its own
+# public key. The id carries a suffix encoding which series to return; which
+# variant a given fund answers on is not predictable, so both are tried.
+TIMESERIES_HOSTS = [
+    "https://tools.morningstar.co.uk/api/rest.svc/timeseries_price/t92wz0sj7c",
+    "https://tools.morningstar.no/api/rest.svc/timeseries_price/t92wz0sj7c",
+]
+TIMESERIES_ID_SUFFIXES = ["]2]1]", "]22]1]"]
+
+
+def fetch_nav_history(sec_id: str, start: date, end: date, currency: str = "NOK"):
+    """Daily NAV series for a Morningstar security id, as a pandas Series.
+
+    Returns an empty Series rather than raising: a missing NAV feed should
+    degrade the backtest, not take down the daily estimate.
+    """
+    import pandas as pd
+
+    session = _session()
+    for url, series in _timeseries_candidates(session, sec_id, start, end, currency):
+        if not series.empty:
+            log.info("Hentet %d NAV-punkter fra %s", len(series), url)
+            return series
+    return pd.Series(dtype="float64")
+
+
+def _timeseries_candidates(session, sec_id: str, start: date, end: date, currency: str):
+    import pandas as pd
+
+    for host in TIMESERIES_HOSTS:
+        for suffix in TIMESERIES_ID_SUFFIXES:
+            params = {
+                "id": f"{sec_id}{suffix}",
+                "currencyId": currency,
+                "idtype": "Morningstar",
+                "frequency": "daily",
+                "startDate": start.isoformat(),
+                "endDate": end.isoformat(),
+                "outputType": "COMPACTJSON",
+            }
+            try:
+                response = session.get(host, params=params, timeout=TIMEOUT)
+                response.raise_for_status()
+                payload = response.json()
+            except Exception as exc:  # noqa: BLE001 - candidate probing
+                log.debug("NAV-kandidat %s%s feilet: %s", host, suffix, exc)
+                yield f"{host} ({suffix})", pd.Series(dtype="float64")
+                continue
+            yield f"{host} ({suffix})", _parse_timeseries(payload)
+
+
+def _parse_timeseries(payload: Any):
+    """COMPACTJSON is a bare list of [epoch_millis, value] pairs."""
+    import pandas as pd
+
+    if not isinstance(payload, list):
+        return pd.Series(dtype="float64")
+    rows: dict[Any, float] = {}
+    for item in payload:
+        if not isinstance(item, (list, tuple)) or len(item) < 2:
+            continue
+        stamp, value = item[0], item[1]
+        if not isinstance(stamp, (int, float)) or not isinstance(value, (int, float)):
+            continue
+        rows[pd.Timestamp(int(stamp), unit="ms").normalize()] = float(value)
+    return pd.Series(rows, dtype="float64").sort_index()
+
+
+def probe_nav(sec_id: str, start: date, end: date, currency: str = "NOK"):
+    """Report which NAV timeseries variant answers, for the diagnostics run."""
+    session = _session()
+    results = []
+    for label, series in _timeseries_candidates(session, sec_id, start, end, currency):
+        if series.empty:
+            results.append((label, "ingen data"))
+        else:
+            results.append((
+                label,
+                f"{len(series)} kurser, {series.index.min().date()} til "
+                f"{series.index.max().date()}, siste {series.iloc[-1]:.2f}",
+            ))
+    return results
+
+
 def _session() -> requests.Session:
     session = requests.Session()
     session.headers.update(

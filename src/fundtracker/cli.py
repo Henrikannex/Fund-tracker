@@ -69,10 +69,11 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("funds", help="List konfigurerte fond")
 
     args = parser.parse_args(argv)
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO,
-        format="%(levelname)s %(name)s: %(message)s",
-    )
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    if args.verbose:
+        # Only our own loggers. yfinance at DEBUG emits several hundred lines per
+        # ticker, which buries the diagnostics this flag exists to surface.
+        logging.getLogger("fundtracker").setLevel(logging.DEBUG)
 
     handlers = {
         "estimate": cmd_estimate,

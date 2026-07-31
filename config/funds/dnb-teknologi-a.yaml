@@ -38,7 +38,8 @@ nav_source:
   #
   # 0P00000MVB er fondets Morningstar-kode. Yahoo lister europeiske fond under
   # den koden med varierende markedssuffiks; "probe" prøver alle.
-  type: yahoo
+  # "auto" prøver Yahoo, så Morningstars tidsserie, så den manuelle fila.
+  type: auto
   ticker: 0P00000MVB.OL
   yahoo_stem: 0P00000MVB
   morningstar_secid: F0GBR04NGU

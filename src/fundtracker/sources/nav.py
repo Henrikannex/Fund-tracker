@@ -21,17 +21,29 @@ def load_nav(fund: FundConfig, start: date, end: date) -> pd.Series:
     spec = fund.nav_source or {}
     kind = (spec.get("type") or "manual").lower()
 
+    # Each source is tried in turn; the manual file is the last resort. NAV
+    # history is what makes the model checkable at all, so it is worth being
+    # stubborn about finding it.
     series = pd.Series(dtype="float64")
-    if kind == "yahoo":
+
+    if kind in ("yahoo", "auto"):
         series = _from_yahoo(spec.get("ticker"), start, end)
         if series.empty:
-            log.warning(
-                "Yahoo ga ingen NAV for %s. Legg inn kurshistorikk manuelt i %s.",
-                spec.get("ticker"),
-                spec.get("manual_file"),
-            )
+            log.warning("Yahoo ga ingen NAV for %s", spec.get("ticker"))
+
+    if series.empty and spec.get("morningstar_secid"):
+        series = _from_morningstar(spec, fund.currency, start, end)
+        if series.empty:
+            log.warning("Morningstar ga ingen NAV for %s", spec.get("morningstar_secid"))
+
     if series.empty:
         series = _from_manual(spec.get("manual_file"))
+        if series.empty:
+            log.warning(
+                "Ingen NAV-kilde svarte. Legg inn historikk manuelt i %s "
+                "(kolonner: date,nav).",
+                spec.get("manual_file"),
+            )
 
     if series.empty:
         return series
@@ -48,6 +60,18 @@ def _from_yahoo(ticker: Optional[str], start: date, end: date) -> pd.Series:
     if frame.empty or ticker not in frame.columns:
         return pd.Series(dtype="float64")
     return frame[ticker].dropna()
+
+
+def _from_morningstar(spec: dict, currency: str, start: date, end: date) -> pd.Series:
+    from . import morningstar
+
+    try:
+        return morningstar.fetch_nav_history(
+            str(spec["morningstar_secid"]), start, end, currency
+        )
+    except Exception as exc:  # noqa: BLE001 - a dead feed must not break the run
+        log.warning("Morningstar NAV-henting feilet: %s", exc)
+        return pd.Series(dtype="float64")
 
 
 def _from_manual(rel: Optional[str]) -> pd.Series:
@@ -123,7 +147,12 @@ def probe(fund: FundConfig) -> list[tuple[str, str]]:
             ))
 
     if base:
-        results.append((f"Morningstar secid {base}", "brukes til beholdninger, ikke NAV"))
+        from . import morningstar
+
+        try:
+            results.extend(morningstar.probe_nav(base, start, end, fund.currency))
+        except Exception as exc:  # noqa: BLE001 - probing must not raise
+            results.append((f"Morningstar {base}", f"FEIL: {exc}"))
 
     manual = spec.get("manual_file")
     if manual:
