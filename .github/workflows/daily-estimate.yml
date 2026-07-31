@@ -21,6 +21,13 @@ on:
         description: Send e-post
         type: boolean
         default: true
+      latest:
+        description: >-
+          Bruk siste dag med fullstendige kurser i stedet for i dag. Kun for
+          manuelle kjøringer - den planlagte jobben skal alltid gjelde dagen
+          den kjører, ellers kan den sende et gammelt tall uten å si fra.
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -60,6 +67,7 @@ jobs:
             "${{ inputs.fund || 'dnb-teknologi-a' }}" \
             ${{ inputs.date && format('--date {0}', inputs.date) || '' }} \
             --save --skip-if-logged \
+            ${{ inputs.latest && '--latest' || '' }} \
             ${{ (github.event_name == 'schedule' || inputs.send_email) && '--email' || '' }}
           status=$?
           if [ $status -eq 3 ]; then
