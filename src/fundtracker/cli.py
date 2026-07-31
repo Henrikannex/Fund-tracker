@@ -313,26 +313,45 @@ def _already_logged(fund, target: date) -> bool:
         return any(row.get("date") == target.isoformat() for row in csv.DictReader(fh))
 
 
+ESTIMATE_COLUMNS = [
+    "date", "estimated_pct", "coverage_pct", "fx_contribution_pct",
+    "snapshot_age_days", "warnings",
+]
+
+
 def _append_estimate(fund, est) -> None:
+    """Write the estimate to the log, replacing any earlier row for that date.
+
+    Re-running a day is normal — a fix, a better holdings list, a manual retry —
+    and appending would leave two rows for the same date. Anything later that
+    reads this file to measure error would then silently double-count.
+    """
     path = fund.estimates_file()
     path.parent.mkdir(parents=True, exist_ok=True)
-    exists = path.exists()
-    with path.open("a", encoding="utf-8", newline="") as fh:
-        writer = csv.writer(fh)
-        if not exists:
-            writer.writerow(
-                ["date", "estimated_pct", "coverage_pct", "fx_contribution_pct",
-                 "snapshot_age_days", "warnings"]
-            )
-        writer.writerow([
-            est.date.isoformat(),
-            f"{est.return_pct:.4f}",
-            f"{est.coverage_pct:.2f}",
-            f"{est.fx_contribution_pct:.4f}",
-            est.snapshot_age_days if est.snapshot_age_days is not None else "",
-            " | ".join(est.warnings),
-        ])
-    log.info("Logget estimat til %s", path)
+
+    rows = {}
+    if path.exists():
+        with path.open(encoding="utf-8", newline="") as fh:
+            rows = {r["date"]: r for r in csv.DictReader(fh) if r.get("date")}
+
+    replaced = est.date.isoformat() in rows
+    rows[est.date.isoformat()] = {
+        "date": est.date.isoformat(),
+        "estimated_pct": f"{est.return_pct:.4f}",
+        "coverage_pct": f"{est.coverage_pct:.2f}",
+        "fx_contribution_pct": f"{est.fx_contribution_pct:.4f}",
+        "snapshot_age_days": est.snapshot_age_days if est.snapshot_age_days is not None else "",
+        "warnings": " | ".join(est.warnings),
+    }
+
+    with path.open("w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=ESTIMATE_COLUMNS)
+        writer.writeheader()
+        for key in sorted(rows):
+            writer.writerow(rows[key])
+
+    log.info("%s estimat for %s i %s",
+             "Erstattet" if replaced else "Logget", est.date, path)
 
 
 if __name__ == "__main__":
