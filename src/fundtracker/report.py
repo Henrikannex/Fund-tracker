@@ -26,6 +26,20 @@ def _num(value: float, decimals: int = 1) -> str:
     return f"{value:.{decimals}f}".replace(".", ",")
 
 
+def short_name(name: str, width: int | None = None) -> str:
+    """Strip registry boilerplate from a holding name, for display.
+
+    Morningstar spells names out in full — "AppLovin Corp Ordinary Shares -
+    Class A" — which is right for a filing and wrong for a daily email. The
+    underlying name is never touched; this only affects what gets printed.
+    """
+    cleaned = name.replace(" Ordinary Shares", "").replace(" - ", " ")
+    cleaned = cleaned.removesuffix(" New").strip()
+    if width and len(cleaned) > width:
+        cleaned = cleaned[: width - 1].rstrip() + "…"
+    return cleaned
+
+
 def subject(est: Estimate) -> str:
     return f"{est.fund_name}: {_pct(est.return_pct)} ({est.date.strftime('%d.%m')})"
 
@@ -50,13 +64,11 @@ def to_text(est: Estimate) -> str:
         "Sterkeste bidrag:",
     ]
     for c in est.top_contributors():
-        lines.append(f"  {c.name:<28} {_pct(c.contribution_pct, 3):>10}"
-                     f"   (kurs {_pct(c.local_return * 100)}, valuta {_pct(c.fx_return * 100)})")
+        lines.append(_contribution_line(c))
     lines.append("")
     lines.append("Svakeste bidrag:")
     for c in reversed(est.bottom_contributors()):
-        lines.append(f"  {c.name:<28} {_pct(c.contribution_pct, 3):>10}"
-                     f"   (kurs {_pct(c.local_return * 100)}, valuta {_pct(c.fx_return * 100)})")
+        lines.append(_contribution_line(c))
 
     if est.warnings:
         lines += ["", "Forbehold:"]
@@ -70,6 +82,14 @@ def to_text(est: Estimate) -> str:
     return "\n".join(lines)
 
 
+def _contribution_line(c) -> str:
+    """One fixed-width row, so the columns line up in a monospaced client."""
+    return (
+        f"  {short_name(c.name, 28):<28} {_pct(c.contribution_pct, 3):>10}"
+        f"   (kurs {_pct(c.local_return * 100)}, valuta {_pct(c.fx_return * 100)})"
+    )
+
+
 def to_html(est: Estimate) -> str:
     colour = "#137333" if est.return_pct >= 0 else "#c5221f"
 
@@ -79,7 +99,7 @@ def to_html(est: Estimate) -> str:
             sign = "#137333" if c.contribution_pct >= 0 else "#c5221f"
             out.append(
                 f"<tr>"
-                f"<td style='padding:4px 12px 4px 0'>{escape(c.name)}"
+                f"<td style='padding:4px 12px 4px 0'>{escape(short_name(c.name))}"
                 f"<span style='color:#888;font-size:12px'> · {escape(c.ticker)}</span></td>"
                 f"<td style='padding:4px 12px 4px 0;text-align:right'>"
                 f"{_num(c.weight_pct, 2)} %</td>"
