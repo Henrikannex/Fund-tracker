@@ -190,20 +190,48 @@ def resolve_instrument_id(fund: FundConfig) -> Optional[str]:
 
 
 def lookup_instrument_id(isin: str) -> Optional[str]:
+    for _, found, _ in _lookup_attempts(isin):
+        if found:
+            return found
+    return None
+
+
+def probe_instrument_lookup(isin: str) -> list[tuple[str, str]]:
+    """Report why the ISIN lookup did or did not find an id.
+
+    Worth surfacing rather than swallowing: a 403 means Nordnet is blocking the
+    runner and no amount of retrying will help, while a 200 with no match means
+    the response shape changed and the parser needs updating. Those call for
+    completely different fixes.
+    """
+    return [(url, outcome) for url, _, outcome in _lookup_attempts(isin)]
+
+
+def _lookup_attempts(isin: str):
+    """Yield ``(url, found_id, human_readable_outcome)`` for each candidate."""
     session = _session()
     for template in NORDNET_SEARCH_ENDPOINTS:
         url = template.format(isin=isin)
         try:
             response = session.get(url, timeout=TIMEOUT)
-            response.raise_for_status()
+        except requests.RequestException as exc:
+            yield url, None, f"FEIL: {exc}"
+            continue
+        if response.status_code != 200:
+            yield url, None, f"HTTP {response.status_code}"
+            continue
+        try:
             payload = response.json()
-        except Exception as exc:  # noqa: BLE001 - candidate probing
-            log.debug("ISIN-oppslag %s feilet: %s", url, exc)
+        except ValueError:
+            yield url, None, f"HTTP 200 men ikke JSON ({len(response.content)} bytes)"
             continue
         found = _find_instrument_id(payload, isin)
-        if found:
-            return found
-    return None
+        outcome = (
+            f"HTTP 200, instrument-id {found}"
+            if found
+            else f"HTTP 200, {len(response.content)} bytes, ingen post med ISIN {isin}"
+        )
+        yield url, found, outcome
 
 
 def _find_instrument_id(node: Any, isin: str) -> Optional[str]:
@@ -333,12 +361,24 @@ def probe_all(fund: FundConfig) -> list[tuple[str, list[tuple[str, str]]]]:
         else [("-", "morningstar_secid ikke satt i konfigen")],
     ))
 
-    instrument_id = resolve_instrument_id(fund)
-    out.append((
-        "Nordnet",
-        probe_nordnet(str(instrument_id)) if instrument_id
-        else [(f"ISIN-oppslag {fund.isin}", "fant ingen instrument-id")],
-    ))
+    configured = (fund.holdings_source or {}).get("instrument_id")
+    if configured:
+        out.append(("Nordnet", probe_nordnet(str(configured))))
+        return out
+
+    attempts = probe_instrument_lookup(fund.isin)
+    found = next(
+        (
+            outcome.split()[-1]
+            for _, outcome in attempts
+            if "instrument-id" in outcome
+        ),
+        None,
+    )
+    results = [(f"ISIN-oppslag: {url}", outcome) for url, outcome in attempts]
+    if found:
+        results.extend(probe_nordnet(found))
+    out.append(("Nordnet", results))
     return out
 
 

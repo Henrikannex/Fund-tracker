@@ -94,6 +94,21 @@ def run_backtest(
     up with our estimate for T-1. Which is true here is not something to guess
     at — :func:`compare_lags` measures it.
     """
+    estimated, actual = gather_series(fund, snapshot, days)
+    frame = align_lag(estimated, actual, lag)
+    if frame.empty:
+        raise RuntimeError("Ingen overlappende dager mellom estimat og faktisk NAV.")
+    return BacktestResult(fund_id=fund.id, frame=frame.tail(days), lag=lag)
+
+
+def gather_series(
+    fund: FundConfig, snapshot: HoldingsSnapshot, days: int
+) -> tuple[pd.Series, pd.Series]:
+    """Estimated and actual daily returns, both date-indexed.
+
+    Separated from scoring so that comparing several lags costs one round of
+    downloads rather than one per lag.
+    """
     end = date.today()
     start = end - timedelta(days=int(days * 1.6) + 15)  # calendar days for ~`days` sessions
 
@@ -130,11 +145,7 @@ def run_backtest(
     if not estimates:
         raise RuntimeError("Backtesten produserte ingen sammenlignbare dager.")
 
-    estimated = pd.Series(estimates, dtype="float64").sort_index()
-    frame = align_lag(estimated, actual, lag)
-    if frame.empty:
-        raise RuntimeError("Ingen overlappende dager mellom estimat og faktisk NAV.")
-    return BacktestResult(fund_id=fund.id, frame=frame.tail(days), lag=lag)
+    return pd.Series(estimates, dtype="float64").sort_index(), actual
 
 
 def align_lag(estimated: pd.Series, actual: pd.Series, lag: int) -> pd.DataFrame:
@@ -164,12 +175,12 @@ def compare_lags(
     fits best is the answer, and if none fits well the problem is the model, not
     the alignment.
     """
+    estimated, actual = gather_series(fund, snapshot, days)
     results = []
     for lag in lags:
-        try:
-            results.append(run_backtest(fund, snapshot, days=days, lag=lag))
-        except RuntimeError:
-            continue
+        frame = align_lag(estimated, actual, lag)
+        if not frame.empty:
+            results.append(BacktestResult(fund.id, frame.tail(days), lag))
     return results
 
 
