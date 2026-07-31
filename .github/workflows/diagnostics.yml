@@ -10,7 +10,9 @@ on:
   push:
     paths:
       - "config/funds/**"
-      - "src/fundtracker/sources/**"
+      # Hele pakken, ikke bare sources/. Første forsøk lyttet bare på
+      # datakildene, så endringer i selve modellen gikk utestet gjennom.
+      - "src/fundtracker/**"
       - ".github/workflows/diagnostics.yml"
   workflow_dispatch:
     inputs:
