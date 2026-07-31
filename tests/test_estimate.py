@@ -177,6 +177,27 @@ def test_no_priced_holdings_is_an_error_not_a_zero():
         estimate_return(fund, snapshot, date(2026, 7, 30), prices, fx)
 
 
+def test_weights_summing_above_one_hundred_are_flagged():
+    """A mistyped or double-counted weight is silent otherwise."""
+    fund = make_fund()
+    snapshot = make_snapshot([("Alpha", 60.0), ("Beta", 45.0)], cash_pct=2.0)
+    prices, fx = frames()
+
+    est = estimate_return(fund, snapshot, date(2026, 7, 30), prices, fx)
+
+    assert any("over" in w and "100" in w for w in est.warnings)
+
+
+def test_a_truncated_holdings_list_is_not_flagged_as_over_allocated():
+    fund = make_fund()
+    snapshot = make_snapshot([("Alpha", 60.0)], cash_pct=2.0)
+    prices, fx = frames()
+
+    est = estimate_return(fund, snapshot, date(2026, 7, 30), prices, fx)
+
+    assert not any("over" in w and "100" in w for w in est.warnings)
+
+
 def test_hedged_fund_ignores_currency_moves():
     """A hedged fund's NAV tracks local-currency returns, so the FX leg drops out."""
     fund = make_fund()

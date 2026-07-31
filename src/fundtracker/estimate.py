@@ -232,6 +232,16 @@ def _collect_warnings(
     target: date,
     stale_weight: float,
 ) -> None:
+    # A portfolio cannot add up to more than itself. Under 100 % is normal —
+    # a truncated holdings list — but over means a weight was mistyped or a
+    # position counted twice, and that is worth catching at the source.
+    total = snapshot.total_weight_pct + (snapshot.cash_pct or 0.0)
+    if total > 100.5:
+        warnings.append(
+            f"Beholdninger og kontanter summerer til {_no(total, 2)} %, altså over "
+            "100. En vekt er trolig feil eller telt to ganger."
+        )
+
     if stale_weight > 0:
         names = [c.ticker for c in priced if c.carried_forward]
         warnings.append(
