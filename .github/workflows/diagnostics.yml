@@ -1,9 +1,17 @@
 name: Diagnostikk
 
-# Kjøres for hånd. Dette er verktøyet for å finne ut hva som faktisk virker mot
-# Nordnet og Yahoo, siden det ikke kan testes fra et miljø uten nettilgang.
+# Finner ut hva som faktisk virker mot Nordnet, Morningstar og Yahoo. Kan ikke
+# testes fra et utviklingsmiljø uten nettilgang, så denne kjøringen er eneste
+# måten å verifisere nettverkskoden på.
 
 on:
+  # Kjører også når fondsoppsettet eller en datakilde endres. Det er nettopp da
+  # man vil vite om kildene fortsatt svarer.
+  push:
+    paths:
+      - "config/funds/**"
+      - "src/fundtracker/sources/**"
+      - ".github/workflows/diagnostics.yml"
   workflow_dispatch:
     inputs:
       fund:
@@ -23,8 +31,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHONPATH: src
-      FUND: ${{ inputs.fund }}
-      TASK: ${{ inputs.task }}
+      # inputs er tomt når kjøringen kommer fra push, så defaultene må settes her.
+      FUND: ${{ inputs.fund || 'dnb-teknologi-a' }}
+      TASK: ${{ inputs.task || 'alt' }}
+      BACKTEST_DAYS: ${{ inputs.backtest_days || '250' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -33,22 +43,22 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
 
-      - name: Hvilke Nordnet-endepunkter svarer
-        if: ${{ inputs.task == 'alt' || inputs.task == 'probe' }}
+      - name: Hvilke kilder svarer
+        if: env.TASK == 'alt' || env.TASK == 'probe'
         continue-on-error: true
         run: python -m fundtracker.cli probe "$FUND"
 
       - name: Ticker-dekning
-        if: ${{ inputs.task == 'alt' || inputs.task == 'resolve' }}
+        if: env.TASK == 'alt' || env.TASK == 'resolve'
         continue-on-error: true
         run: python -m fundtracker.cli resolve "$FUND"
 
       - name: Estimat for siste handelsdag
-        if: ${{ inputs.task == 'alt' || inputs.task == 'estimate' }}
+        if: env.TASK == 'alt' || env.TASK == 'estimate'
         continue-on-error: true
         run: python -m fundtracker.cli -v estimate "$FUND"
 
       - name: Backtest mot faktisk NAV
-        if: ${{ inputs.task == 'alt' || inputs.task == 'backtest' }}
+        if: env.TASK == 'alt' || env.TASK == 'backtest'
         continue-on-error: true
-        run: python -m fundtracker.cli backtest "$FUND" --days "${{ inputs.backtest_days }}"
+        run: python -m fundtracker.cli backtest "$FUND" --days "$BACKTEST_DAYS"
