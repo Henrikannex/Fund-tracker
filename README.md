@@ -177,11 +177,32 @@ beholdes, som er det riktige for et usikret fond i kroner.
 dekning ble den 0,639. De manglende beholdningene var aldri forklaringen på
 avviket, og den antakelsen kostet flere runder å avlive.
 
-**Hvor ofte må beholdningene oppdateres?** Uavklart. Målingen som skulle svare
-grupperte i praksis etter hvor langt tilbake dagen lå, ikke etter hvor gammelt
-snapshotet var — og de to går motsatt vei, siden de eldste dagene i vinduet
-ligger nærmest snapshot-datoen. Det er rettet, men konklusjonen mangler til
-neste kjøring.
+**Hvor ofte må beholdningene oppdateres?** Skjevheten vokser jevnt med
+alderen på snapshotet:
+
+| Snapshot-alder | Skjevhet |
+|---|---|
+| 36–58 dager | −0,01 %-poeng |
+| 58–79 dager | −0,13 |
+| 79–101 dager | −0,15 |
+| 101–121 dager | −0,19 |
+
+Rundt 0,05 %-poeng per måned med foreldelse. Snittfeilen henger ikke like
+tydelig sammen med alderen, så dag-til-dag-støyen kommer fra noe annet — men
+retningen på skjevheten er entydig, og den taler for å hente nye beholdninger
+et par ganger i året.
+
+### Et forsøk som ikke virket
+
+En periode fantes det et verktøy som skulle utlede hvilke vekter som var feil,
+ved å regressere dagsfeilen på hver enkelt posts avkastning. Tanken var at en
+post vi bærer for mye av gjør estimatet for høyt nettopp de dagene den steg.
+
+Det ga umulige svar — antydede vekter under null. Årsaken er at
+teknologiaksjer beveger seg sammen, så en enkeltregresjon per aksje fanger
+felles markedsvariasjon i stedet for postens eget bidrag. Med 57 dager og 63
+vekter er problemet dessuten underbestemt uansett metode. Verktøyet er fjernet;
+selvsikre umuligheter er verre enn ingen diagnose.
 
 ## Status
 
