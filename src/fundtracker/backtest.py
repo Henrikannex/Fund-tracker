@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, timedelta
+from typing import Optional
 
 import pandas as pd
 
@@ -102,7 +103,11 @@ def run_backtest(
 
 
 def estimate_series(
-    fund: FundConfig, snapshot: HoldingsSnapshot, start: date, end: date
+    fund: FundConfig,
+    snapshot: HoldingsSnapshot,
+    start: date,
+    end: date,
+    hedged: Optional[bool] = None,
 ) -> pd.Series:
     """Daily estimated returns in percent, for every day we can price properly.
 
@@ -121,7 +126,9 @@ def estimate_series(
         if ts < pd.Timestamp(start) or ts > pd.Timestamp(end):
             continue
         try:
-            est = estimate_return(fund, snapshot, ts.date(), prices, fx, staleness, observed)
+            est = estimate_return(
+                fund, snapshot, ts.date(), prices, fx, staleness, observed, hedged
+            )
         except ValueError:
             continue
         if any("Ingen kursdata" in w for w in est.warnings):

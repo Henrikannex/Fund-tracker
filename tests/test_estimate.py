@@ -177,6 +177,28 @@ def test_no_priced_holdings_is_an_error_not_a_zero():
         estimate_return(fund, snapshot, date(2026, 7, 30), prices, fx)
 
 
+def test_hedged_fund_ignores_currency_moves():
+    """A hedged fund's NAV tracks local-currency returns, so the FX leg drops out."""
+    fund = make_fund()
+    snapshot = make_snapshot([("Alpha", 100.0)])
+    prices, fx = frames(alpha=(100.0, 110.0), usdnok=(10.0, 10.5))
+
+    est = estimate_return(fund, snapshot, date(2026, 7, 30), prices, fx, hedged=True)
+
+    assert est.equity_return_pct == pytest.approx(10.0)  # not 15.5
+    assert est.fx_contribution_pct == pytest.approx(0.0)
+
+
+def test_hedging_defaults_to_the_fund_config():
+    fund = make_fund(currency_hedged=True)
+    snapshot = make_snapshot([("Alpha", 100.0)])
+    prices, fx = frames(alpha=(100.0, 100.0), usdnok=(10.0, 10.5))
+
+    est = estimate_return(fund, snapshot, date(2026, 7, 30), prices, fx)
+
+    assert est.equity_return_pct == pytest.approx(0.0)
+
+
 def test_carried_forward_prices_are_reported_not_treated_as_a_flat_day():
     """The failure that shipped: run before the US close and half the fund is
     silently forward-filled to 0,00 %, while the headline number looks fine."""

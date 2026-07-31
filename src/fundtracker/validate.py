@@ -72,7 +72,9 @@ def _shift(anchor: date, spec: dict) -> date:
     return date(year, month, day)
 
 
-def run_validation(fund: FundConfig, snapshot: HoldingsSnapshot) -> list[PeriodCheck]:
+def run_validation(
+    fund: FundConfig, snapshot: HoldingsSnapshot, hedged: Optional[bool] = None
+) -> list[PeriodCheck]:
     """Compare compounded estimates against the fund's published period returns."""
     spec = fund.benchmarks or {}
     published = spec.get("periods") or {}
@@ -90,7 +92,7 @@ def run_validation(fund: FundConfig, snapshot: HoldingsSnapshot) -> list[PeriodC
     earliest = min(_shift(anchor, offset) for _, offset in wanted.values())
 
     # One download covering every window, rather than one per period.
-    daily = estimate_series(fund, snapshot, earliest - timedelta(days=7), anchor)
+    daily = estimate_series(fund, snapshot, earliest - timedelta(days=7), anchor, hedged)
 
     checks = []
     for key, (label, offset) in wanted.items():
@@ -118,6 +120,66 @@ def _compound(daily_pct: pd.Series) -> float:
     Over a year that difference is large enough to matter.
     """
     return float(((1.0 + daily_pct / 100.0).prod() - 1.0) * 100.0)
+
+
+def format_comparison(
+    unhedged: list[PeriodCheck], hedged: list[PeriodCheck], as_of: date
+) -> str:
+    """Show both currency assumptions side by side and let the errors decide.
+
+    Whether a fund hedges is a fact about the fund, but reading it off a
+    prospectus is slower and more error-prone than reading it off the numbers:
+    the wrong assumption biases every window in the same direction, so the right
+    one is unmistakable.
+    """
+    lines = [
+        f"Modell mot Nordnets publiserte tall, per {as_of}",
+        "",
+        "                          |------- avvik i %-poeng -------|",
+        "  periode        dager     publisert    usikret      sikret",
+    ]
+    by_label = {c.label: c for c in hedged}
+    for c in unhedged:
+        other = by_label.get(c.label)
+        lines.append(
+            f"  {c.label:<12} {c.trading_days:>6}    {c.published_pct:>+8.2f} %"
+            f"   {_fmt(c.error_pct):>8}   {_fmt(other.error_pct if other else None):>9}"
+        )
+
+    lines.append("")
+    lines.append(_verdict(unhedged, hedged))
+    return "\n".join(lines)
+
+
+def _fmt(value: Optional[float]) -> str:
+    return "-" if value is None else f"{value:+.2f}"
+
+
+def _verdict(unhedged: list[PeriodCheck], hedged: list[PeriodCheck]) -> str:
+    """State which currency assumption fits, using only the short windows.
+
+    Long windows are dominated by portfolio drift, which has nothing to do with
+    hedging, so including them would muddy exactly the signal we want.
+    """
+    def score(checks):
+        short = [c for c in checks if c.trading_days and c.trading_days <= 30
+                 and c.error_pct is not None]
+        return sum(abs(c.error_pct) for c in short) / len(short) if short else None
+
+    a, b = score(unhedged), score(hedged)
+    if a is None or b is None:
+        return "  For lite data til å avgjøre valutaspørsmålet."
+    if abs(a - b) < 0.3:
+        return (
+            f"  Ingen tydelig forskjell (usikret {a:.2f}, sikret {b:.2f} %-poeng "
+            "snittavvik). Valuta forklarer ikke bommen - se andre steder."
+        )
+    winner, loser = ("sikret", "usikret") if b < a else ("usikret", "sikret")
+    return (
+        f"  {winner.capitalize()} passer klart best: {min(a, b):.2f} mot "
+        f"{max(a, b):.2f} %-poeng i snittavvik på korte vinduer.\n"
+        f"  Fondet oppfører seg altså som et {winner} fond, ikke et {loser}."
+    )
 
 
 def format_validation(checks: list[PeriodCheck], as_of: date) -> str:

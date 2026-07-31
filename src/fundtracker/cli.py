@@ -211,8 +211,16 @@ def cmd_estimate(args) -> int:
 def cmd_validate(args) -> int:
     fund = load_fund(args.fund)
     snapshot = holdings_mod.load_holdings(fund)
-    checks = validate_mod.run_validation(fund, snapshot)
-    print(validate_mod.format_validation(checks, fund.benchmarks["as_of"]))
+    as_of = fund.benchmarks["as_of"]
+
+    unhedged = validate_mod.run_validation(fund, snapshot, hedged=False)
+    hedged = validate_mod.run_validation(fund, snapshot, hedged=True)
+    print(validate_mod.format_comparison(unhedged, hedged, as_of))
+
+    print()
+    print(validate_mod.format_validation(
+        hedged if fund.currency_hedged else unhedged, as_of
+    ))
     return 0
 
 

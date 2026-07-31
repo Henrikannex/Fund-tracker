@@ -38,6 +38,7 @@ def estimate_return(
     fx: pd.DataFrame,
     staleness: Optional[pd.Series] = None,
     observed: Optional[pd.DataFrame] = None,
+    hedged: Optional[bool] = None,
 ) -> Estimate:
     """Estimate ``fund``'s return for ``target``.
 
@@ -49,6 +50,10 @@ def estimate_return(
     """
     warnings: list[str] = []
     staleness = staleness if staleness is not None else pd.Series(dtype="int64")
+    # A hedged fund neutralises currency moves, so its NAV tracks the holdings'
+    # local-currency returns. Getting this wrong biases every single day in the
+    # same direction, which is exactly what it looks like.
+    hedged = fund.currency_hedged if hedged is None else hedged
 
     ts = pd.Timestamp(target).normalize()
     curr_idx, prev_idx = _pick_rows(prices, ts, warnings)
@@ -74,7 +79,7 @@ def estimate_return(
             continue
 
         local = p_now / p_prev - 1.0
-        fx_ret = fx_now / fx_prev - 1.0
+        fx_ret = 0.0 if hedged else fx_now / fx_prev - 1.0
         priced.append(
             Contribution(
                 name=holding.name,

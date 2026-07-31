@@ -29,6 +29,10 @@ class FundConfig:
     trading_days_per_year: int
     holdings_source: dict[str, Any]
     nav_source: dict[str, Any]
+    # True if the fund hedges its currency exposure back to `currency`. Then the
+    # FX leg drops out entirely and NAV tracks local-currency returns. Getting
+    # this wrong biases every day in the same direction.
+    currency_hedged: bool = False
     tickers: dict[str, TickerMapping] = field(default_factory=dict)
     ignore: list[str] = field(default_factory=list)
     # Published period returns to check the model against, when no NAV series
@@ -97,6 +101,7 @@ def load_fund(fund_id: str) -> FundConfig:
         currency=raw.get("currency", "NOK").upper(),
         total_cost_pct=float(raw.get("total_cost_pct", 0.0)),
         trading_days_per_year=int(raw.get("trading_days_per_year", 252)),
+        currency_hedged=bool(raw.get("currency_hedged", False)),
         holdings_source=raw.get("holdings_source") or {},
         nav_source=raw.get("nav_source") or {},
         tickers=tickers,
