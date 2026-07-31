@@ -21,7 +21,7 @@ on:
         description: Hva skal kjøres
         type: choice
         default: alt
-        options: [alt, probe, resolve, estimate, backtest]
+        options: [alt, probe, resolve, estimate, validate, backtest]
       backtest_days:
         description: Antall handelsdager i backtesten
         default: "250"
@@ -59,6 +59,11 @@ jobs:
         # --latest, fordi diagnostikken som regel kjøres midt på dagen når
         # dagens børsdag ikke er ferdig. Da er gårsdagen det interessante.
         run: python -m fundtracker.cli estimate "$FUND" --latest
+
+      - name: Mot Nordnets publiserte periodetall
+        if: env.TASK == 'alt' || env.TASK == 'validate'
+        continue-on-error: true
+        run: python -m fundtracker.cli validate "$FUND"
 
       - name: Backtest mot faktisk NAV
         if: env.TASK == 'alt' || env.TASK == 'backtest'

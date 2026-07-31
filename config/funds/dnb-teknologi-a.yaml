@@ -99,6 +99,25 @@ tickers:
   # prises altså på samme klokkeslett som resten av fondet.
   Sony Group Corporation:      {ticker: SONY,      currency: USD}
 
+# Fasit å måle modellen mot, siden ingen NAV-tidsserie er tilgjengelig.
+# Tallene står under kursgrafen på Nordnets fondsside, alle per samme dato.
+#
+# Korte vinduer er den ekte testen: der har porteføljen knapt endret seg, så et
+# avvik er modellens skyld. Lange vinduer måler noe annet - der har forvalter
+# handlet mens vi fortsatt regner med dagens vekter - men hvor fort avviket
+# vokser med horisonten sier akkurat hvor ofte beholdningene bør oppdateres.
+benchmarks:
+  as_of: 2026-07-29
+  last_nav: 6906.66
+  periods:
+    1u: 2.97
+    1m: 1.79
+    3m: 9.37
+    6m: 12.18
+    ytd: 6.31
+    1y: 21.62
+    3y: 97.07
+
 # Navn som med vilje ikke prises (kontanter, derivater, pengemarked).
 # Vekten deres holdes utenfor aksjeavkastningen.
 ignore:

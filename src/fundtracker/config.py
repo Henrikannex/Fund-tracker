@@ -31,6 +31,9 @@ class FundConfig:
     nav_source: dict[str, Any]
     tickers: dict[str, TickerMapping] = field(default_factory=dict)
     ignore: list[str] = field(default_factory=list)
+    # Published period returns to check the model against, when no NAV series
+    # is available. See fundtracker.validate.
+    benchmarks: dict[str, Any] = field(default_factory=dict)
 
     @property
     def daily_fee_drag(self) -> float:
@@ -98,6 +101,7 @@ def load_fund(fund_id: str) -> FundConfig:
         nav_source=raw.get("nav_source") or {},
         tickers=tickers,
         ignore=list(raw.get("ignore") or []),
+        benchmarks=raw.get("benchmarks") or {},
     )
 
 

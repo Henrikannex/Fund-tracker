@@ -12,6 +12,7 @@ import pandas as pd
 
 from . import backtest as backtest_mod
 from . import notify, report
+from . import validate as validate_mod
 from .config import list_funds, load_fund
 from .estimate import estimate_return, priced_tickers, resolve_holding
 from .sources import holdings as holdings_mod
@@ -72,6 +73,11 @@ def main(argv: list[str] | None = None) -> int:
     p_probe = sub.add_parser("probe", help="Test hvilke Nordnet-endepunkter som svarer")
     p_probe.add_argument("fund")
 
+    p_val = sub.add_parser(
+        "validate", help="Mål modellen mot fondets publiserte periodeavkastning"
+    )
+    p_val.add_argument("fund")
+
     sub.add_parser("funds", help="List konfigurerte fond")
 
     args = parser.parse_args(argv)
@@ -84,6 +90,7 @@ def main(argv: list[str] | None = None) -> int:
     handlers = {
         "estimate": cmd_estimate,
         "backtest": cmd_backtest,
+        "validate": cmd_validate,
         "snapshot": cmd_snapshot,
         "resolve": cmd_resolve,
         "probe": cmd_probe,
@@ -198,6 +205,14 @@ def cmd_estimate(args) -> int:
         _append_estimate(fund, est)
     if args.email:
         notify.send_email(report.subject(est), report.to_text(est), report.to_html(est))
+    return 0
+
+
+def cmd_validate(args) -> int:
+    fund = load_fund(args.fund)
+    snapshot = holdings_mod.load_holdings(fund)
+    checks = validate_mod.run_validation(fund, snapshot)
+    print(validate_mod.format_validation(checks, fund.benchmarks["as_of"]))
     return 0
 
 

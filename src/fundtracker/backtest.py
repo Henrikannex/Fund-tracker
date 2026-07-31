@@ -101,6 +101,38 @@ def run_backtest(
     return BacktestResult(fund_id=fund.id, frame=frame.tail(days), lag=lag)
 
 
+def estimate_series(
+    fund: FundConfig, snapshot: HoldingsSnapshot, start: date, end: date
+) -> pd.Series:
+    """Daily estimated returns in percent, for every day we can price properly.
+
+    Days where a chunk of the fund had no quote are dropped rather than counted
+    as flat, so a caller compounding this series is not silently accumulating
+    zeros that never happened.
+    """
+    tickers, currencies = priced_tickers(fund, snapshot)
+    raw_prices = price_source.closing_prices(tickers, start, end)
+    raw_fx = price_source.fx_to_base(sorted(currencies), fund.currency, start, end)
+    prices, staleness, observed = price_source.align(raw_prices)
+    fx, _, _ = price_source.align(raw_fx)
+
+    estimates = {}
+    for ts in prices.index:
+        if ts < pd.Timestamp(start) or ts > pd.Timestamp(end):
+            continue
+        try:
+            est = estimate_return(fund, snapshot, ts.date(), prices, fx, staleness, observed)
+        except ValueError:
+            continue
+        if any("Ingen kursdata" in w for w in est.warnings):
+            continue
+        if est.stale_weight_pct > MAX_STALE_WEIGHT_PCT:
+            continue
+        estimates[ts] = est.return_pct
+
+    return pd.Series(estimates, dtype="float64").sort_index()
+
+
 def gather_series(
     fund: FundConfig, snapshot: HoldingsSnapshot, days: int
 ) -> tuple[pd.Series, pd.Series]:
@@ -119,33 +151,10 @@ def gather_series(
             "kjenner, eller legg inn en CSV med kolonnene date,nav i nav_source.manual_file."
         )
 
-    tickers, currencies = priced_tickers(fund, snapshot)
-
-    raw_prices = price_source.closing_prices(tickers, start, end)
-    raw_fx = price_source.fx_to_base(sorted(currencies), fund.currency, start, end)
-    prices, staleness, observed = price_source.align(raw_prices)
-    fx, _, _ = price_source.align(raw_fx)
-
-    estimates = {}
-    for ts in actual.index:
-        day = ts.date()
-        try:
-            est = estimate_return(fund, snapshot, day, prices, fx, staleness, observed)
-        except ValueError:
-            continue
-        # Skip days our data cannot actually speak to: no bar for the date, or a
-        # big chunk of the fund carried forward. Those measure the plumbing, not
-        # the model, and averaging them in would flatter the error statistics.
-        if any("Ingen kursdata" in w for w in est.warnings):
-            continue
-        if est.stale_weight_pct > MAX_STALE_WEIGHT_PCT:
-            continue
-        estimates[ts] = est.return_pct
-
-    if not estimates:
+    estimated = estimate_series(fund, snapshot, start, end)
+    if estimated.empty:
         raise RuntimeError("Backtesten produserte ingen sammenlignbare dager.")
-
-    return pd.Series(estimates, dtype="float64").sort_index(), actual
+    return estimated, actual
 
 
 def align_lag(estimated: pd.Series, actual: pd.Series, lag: int) -> pd.DataFrame:
