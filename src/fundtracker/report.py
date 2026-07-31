@@ -35,6 +35,10 @@ def short_name(name: str, width: int | None = None) -> str:
     """
     cleaned = name.replace(" Ordinary Shares", "").replace(" - ", " ")
     cleaned = cleaned.removesuffix(" New").strip()
+    # "Amazon.com Inc" looks like a domain, and mobile mail clients turn it into
+    # a link. Dropping the suffix reads better anyway, and the ticker beside it
+    # keeps the row unambiguous.
+    cleaned = cleaned.replace(".com", "")
     if width and len(cleaned) > width:
         cleaned = cleaned[: width - 1].rstrip() + "…"
     return cleaned
@@ -147,7 +151,24 @@ def to_html(est: Estimate) -> str:
             f"{items}</ul></div>"
         )
 
-    return f"""<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;max-width:640px;color:#1a1a1a">
+    return f"""<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- iOS Mail linkifies anything resembling a phone number, date or address.
+     Nothing here is meant to be tappable, so the detectors are turned off, and
+     the rule below neutralises the styling on any the client links anyway. -->
+<meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no">
+<style>
+  a[x-apple-data-detectors] {{
+    color: inherit !important;
+    text-decoration: none !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+  }}
+</style>
+</head><body style="margin:0">
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;max-width:640px;color:#1a1a1a">
   <div style="font-size:14px;font-weight:600">{escape(est.fund_name)}</div>
   <div style="font-size:40px;font-weight:600;color:{colour};line-height:1.2;margin:4px 0">
     {_pct(est.return_pct)}
@@ -177,4 +198,5 @@ def to_html(est: Estimate) -> str:
     Estimat basert på fondets kjente beholdninger og dagens sluttkurser.
     Ikke fondets offisielle NAV.
   </p>
-</div>"""
+</div>
+</body></html>"""

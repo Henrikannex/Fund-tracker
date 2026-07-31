@@ -96,3 +96,30 @@ def test_a_non_numeric_port_is_a_configuration_error_not_a_crash(monkeypatch):
 
     with pytest.raises(NotConfigured, match="SMTP_PORT"):
         send_email("emne", "tekst")
+
+
+def test_domain_like_names_are_defused_for_mobile_clients():
+    """iOS Mail turns "Amazon.com" into a tappable link; the row is not a link."""
+    from fundtracker.report import short_name
+
+    assert short_name("Amazon.com Inc") == "Amazon Inc"
+
+
+def test_html_disables_mobile_data_detectors():
+    from datetime import date
+
+    from fundtracker.models import Contribution, Estimate
+    from fundtracker.report import to_html
+
+    est = Estimate(
+        fund_id="t", fund_name="Test", date=date(2026, 7, 30), return_pct=1.0,
+        equity_return_pct=1.0, fx_contribution_pct=0.0, fee_drag_pct=0.0,
+        coverage_pct=99.0, stale_weight_pct=0.0, cash_pct=1.0, snapshot_age_days=1,
+        contributions=[Contribution("Amazon.com Inc", "AMZN", "USD", 5.0,
+                                    0.01, 0.0, 0.01, 0.05)],
+    )
+    html = to_html(est)
+
+    assert "format-detection" in html
+    assert "x-apple-data-detectors" in html
+    assert "Amazon Inc" in html and "Amazon.com" not in html
