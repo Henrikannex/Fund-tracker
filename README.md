@@ -145,26 +145,54 @@ avslutter uten å gjøre noe hvis dagens estimat allerede er logget.
 `.github/workflows/diagnostics.yml` kjøres manuelt og er verktøyet for å teste
 scraping og backtest mot ekte nett.
 
+## Hvor godt treffer den
+
+Målt mot 55 dager med faktisk NAV, mai til juli 2026:
+
+| | |
+|---|---|
+| Gjennomsnittlig feil | 0,63 %-poeng |
+| Systematisk skjevhet | −0,15 %-poeng |
+| Traff riktig retning | 87,3 % |
+| Korrelasjon med NAV | 0,842 |
+
+Retningen stemmer sju av åtte dager, og bommen er typisk et halvt til ett
+prosentpoeng. Godt nok til å vite hvordan dagen gikk; ikke godt nok til å
+handle på.
+
+Tre spørsmål er avgjort av disse dataene i stedet for av antakelser:
+
+**Når prises fondet?** Samme dag. Forsinkelse på én dag gir 1,69 %-poeng feil
+og negativ korrelasjon, mot 0,63 og 0,842 for samme dag. Stopptiden på 09:00
+som Nordnet oppgir er ordrefristen, ikke verdsettelsestidspunktet — så
+kveldsestimatet gjelder dagen det kjøres.
+
+**Er fondet valutasikret?** Kan ikke avgjøres. Med valuta gir 0,632 %-poeng
+feil, uten gir 0,612 — forskjellen er for liten til å bety noe. Valutaleddet
+beholdes, som er det riktige for et usikret fond i kroner.
+
+**Hvor ofte må beholdningene oppdateres?** Sjelden. Feilen gruppert etter
+snapshot-alder er flat — 0,78 / 0,52 / 0,74 / 0,50 %-poeng fra ferskest til
+eldst. Et snapshot på tre måneder er like godt som et på tre dager, så
+manuell oppdatering én gang i måneden er rikelig.
+
 ## Status
 
 | Del | Tilstand |
 |---|---|
-| Avkastningsmodell med valuta og gebyr | Ferdig, 16 tester |
-| Beholdninger fra manuell CSV | Virker — aktiv kilde |
-| Beholdninger fra Morningstar | Skrevet, ikke verifisert — kjør `probe` |
-| Beholdninger fra Nordnet | Skrevet, mangler `instrument_id` |
-| Kurser og valuta fra Yahoo | Skrevet, ikke verifisert mot ekte nett |
-| NAV-historikk til backtest | **Største risiko** — ingen bekreftet kilde |
-| E-post | Skrevet, mangler secrets |
+| Avkastningsmodell | Validert mot 55 dager, 33 tester |
+| Beholdninger fra manuell CSV | Aktiv kilde, 25 poster, 79,83 % dekning |
+| Kurser og valuta fra Yahoo | Virker |
+| NAV-historikk | Manuell fil, mai-juli 2026 |
+| Beholdninger fra Morningstar | Skrevet, ikke verifisert |
+| Beholdninger fra Nordnet | ISIN-oppslag finner ingen instrument-id |
+| NAV automatisk | Ingen kilde funnet — Yahoo og Morningstar kjenner ikke fondet |
+| E-post | Secrets satt, aldri sendt i praksis |
 
 ### Åpne spørsmål
 
-- **Hvor mange beholdninger viser Nordnet egentlig?** Den manuelle fila har de
-  22 øverste, til sammen 75,3 %. Resten mangler.
-- **Kontantandel** fra «Fordeling»-boksen er ikke lagt inn.
-- **Er fondet valutasikret?** Koden antar nei. Er det sikret, skal valutaleddet
-  ut, og det snur fortegnet på en betydelig del av bevegelsen.
-- **Når settes NAV?** Hele poenget med å kjøre 22:15 er at fondet prises på
-  amerikansk stengetid. Er cut-off tidligere, må tidspunktet flyttes.
-- **Hvilken notering** holder fondet av STM, SAP, Nokia, Sony og Samsung?
-  Står i DNBs årsrapport.
+- **Hva står igjen av de 0,63 %-poengene?** Halen på 20 % vi ikke ser,
+  handler forvalter gjør, og støy i enkeltkurser. Korrelasjonen på 0,842
+  betyr at rundt 30 % av dagsvariasjonen ikke forklares.
+- **NAV-historikken må vedlikeholdes for hånd** så lenge ingen kilde svarer.
+  Det holder å legge til nye kurser nå og da for å følge med på feilen.

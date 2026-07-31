@@ -232,21 +232,29 @@ def format_currency_comparison(unhedged: BacktestResult, hedged: BacktestResult)
             f"{r.direction_hit_rate:>13.1f} %   {r.correlation:>11.3f}"
         )
 
-    better = unhedged if unhedged.mean_abs_error <= hedged.mean_abs_error else hedged
-    name = "med valuta" if better is unhedged else "uten valuta"
-    lines += [
-        "",
-        f"  {name.capitalize()} treffer best, med {better.mean_abs_error:.3f} %-poeng "
-        "i snittfeil.",
-    ]
-    if better is unhedged:
-        lines.append(
-            "  Fondet er altså ikke valutasikret, og valutaleddet skal være med."
-        )
-    else:
-        lines.append(
-            "  Fondet oppfører seg valutasikret; sett currency_hedged: true i konfigen."
-        )
+    # A winner is only a winner by a margin worth acting on. A couple of percent
+    # difference in MAE across a few dozen days is noise, and calling it a
+    # finding sends the reader off to change config for no reason.
+    low, high = sorted((unhedged.mean_abs_error, hedged.mean_abs_error))
+    decisive = (high - low) > 0.1 and low < high * 0.85
+
+    lines.append("")
+    if not decisive:
+        lines += [
+            f"  Forskjellen er {high - low:.3f} %-poeng - for liten til å avgjøre noe.",
+            "  Dataene skiller ikke sikret fra usikret. Valutaleddet beholdes, som er",
+            "  det teoretisk riktige for et usikret fond i norske kroner.",
+        ]
+        return "\n".join(lines)
+
+    better = unhedged if unhedged.mean_abs_error < hedged.mean_abs_error else hedged
+    name = "Med valuta" if better is unhedged else "Uten valuta"
+    lines.append(f"  {name} treffer klart best: {low:.3f} mot {high:.3f} %-poeng.")
+    lines.append(
+        "  Fondet er altså ikke valutasikret, og valutaleddet skal være med."
+        if better is unhedged
+        else "  Fondet oppfører seg valutasikret; sett currency_hedged: true i konfigen."
+    )
     return "\n".join(lines)
 
 
