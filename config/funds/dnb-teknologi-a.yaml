@@ -69,6 +69,8 @@ tickers:
   Mastercard:                  {ticker: MA,        currency: USD}
   Apple:                       {ticker: AAPL,      currency: USD}
   T-Mobile US:                 {ticker: TMUS,      currency: USD}
+  Marvell Technology:          {ticker: MRVL,      currency: USD}
+  ServiceNow:                  {ticker: NOW,       currency: USD}
   # Logoen på Nordnet er HP Inc., ikke Hewlett Packard Enterprise (HPE).
   HP:                          {ticker: HPQ,       currency: USD}
 
@@ -78,6 +80,7 @@ tickers:
   Sap SE:                      {ticker: SAP.DE,    currency: EUR}
   Dassault Systemes SE:        {ticker: DSY.PA,    currency: EUR}
   ADYEN:                       {ticker: ADYEN.AS,  currency: EUR}
+  ASML HOLDING:                {ticker: ASML.AS,   currency: EUR}
   Nokia:                       {ticker: NOKIA.HE,  currency: EUR}
   Nordic Semiconductor:        {ticker: NOD.OL,    currency: NOK}
 

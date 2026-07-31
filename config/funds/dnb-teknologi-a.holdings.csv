@@ -1,9 +1,12 @@
 # Manuell fallback for beholdninger. Brukes hvis Nordnet-scrapingen ikke er
 # konfigurert eller feiler. Kilde: Nordnet "Største eierandeler", 29.07.2026.
 #
-# UFULLSTENDIG: dette er bare de radene som var synlige uten å scrolle.
-# Summen er 75,30 %, resten av fondet mangler. Scroll hele panelet på Nordnet
-# og lim inn de resterende radene her, så faller usikkerheten merkbart.
+# Hele lista, scrollet til bunnen: nøyaktig 25 rader som summerer til 79,83 %.
+#
+# 25 er ikke et tilfeldig tall. Det er grensen for Morningstars gratisdata, som
+# Nordnet henter dette fra. Lista er altså kappet, ikke uttømt - de resterende
+# 20,17 % er en hale av mindre poster vi ikke får se herfra. Full portefølje
+# finnes bare i DNBs egne måneds- og årsrapporter.
 name,weight_pct
 Microsoft,9.14
 Amazon.com,6.84
@@ -27,3 +30,6 @@ ADYEN,1.67
 Nokia,1.59
 T-Mobile US,1.56
 Nordic Semiconductor,1.52
+Marvell Technology,1.52
+ASML HOLDING,1.51
+ServiceNow,1.50
