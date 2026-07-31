@@ -137,16 +137,18 @@ def to_html(est: Estimate) -> str:
 
     warnings_html = ""
     if est.warnings:
-        items = "".join(f"<li>{escape(w)}</li>" for w in est.warnings)
+        items = "".join(
+            f"<li style='margin-bottom:4px'>{escape(w)}</li>" for w in est.warnings
+        )
         warnings_html = (
-            "<div style='margin-top:24px;padding:12px 16px;background:#fff8e1;"
-            "border-left:3px solid #f0b429;font-size:13px;color:#5c4813'>"
-            f"<strong>Forbehold</strong><ul style='margin:8px 0 0;padding-left:18px'>{items}</ul>"
-            "</div>"
+            "<div style='margin-top:28px'>"
+            "<h3 style='margin:0 0 8px;font-size:14px'>Forbehold</h3>"
+            "<ul style='margin:0;padding-left:18px;font-size:13px;color:#666'>"
+            f"{items}</ul></div>"
         )
 
     return f"""<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;max-width:640px;color:#1a1a1a">
-  <div style="font-size:14px;color:#666">{escape(est.fund_name)}</div>
+  <div style="font-size:14px;font-weight:600">{escape(est.fund_name)}</div>
   <div style="font-size:40px;font-weight:600;color:{colour};line-height:1.2;margin:4px 0">
     {_pct(est.return_pct)}
   </div>
