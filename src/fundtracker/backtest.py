@@ -5,11 +5,16 @@ Two questions this answers:
 1. *How wrong is the estimate on a typical day?* Mean absolute error, bias, and
    how often the sign is right. Direction accuracy is the number that matters
    when the estimate is used to satisfy curiosity rather than to trade.
-2. *How fast does a holdings snapshot go stale?* We only have today's
-   composition, so running it against older NAVs deliberately conflates model
-   error with drift in the portfolio. Bucketing the error by how far back we
-   went separates the two: a flat curve means freshness barely matters and
-   scraping monthly is plenty; a rising curve tells us how often to re-scrape.
+2. *How fast does a holdings snapshot go stale?* We hold one composition, dated
+   by the fund company, and score it against every day in the window. Grouping
+   the error by the gap between that date and the day being scored says how
+   quickly the portfolio drifts away from us — a flat curve means refreshing
+   the holdings rarely is fine, a rising one says how often to go get them.
+
+   Note the direction: the *oldest* days in a backtest window sit closest to a
+   past snapshot date and therefore use the *freshest* holdings. Grouping by
+   position in the window instead of by distance from the snapshot answers the
+   question backwards.
 """
 
 from __future__ import annotations
@@ -35,6 +40,8 @@ class BacktestResult:
     fund_id: str
     frame: pd.DataFrame  # date-indexed: estimated_pct, actual_pct, error_pct
     lag: int = 0
+    # The date the holdings are from, so staleness can be measured against it.
+    snapshot_as_of: Optional[date] = None
 
     @property
     def days(self) -> int:
@@ -67,12 +74,18 @@ class BacktestResult:
         return float(self.frame["estimated_pct"].corr(self.frame["actual_pct"]))
 
     def error_by_age(self, buckets: int = 4) -> pd.DataFrame:
-        """Mean absolute error grouped by how far back in time the day was."""
-        if self.frame.empty:
+        """Mean absolute error grouped by how stale the holdings were that day.
+
+        Measured from the date the fund company says the composition is from —
+        not from the newest day in the window. Those run in opposite directions:
+        the oldest backtest days sit closest to the snapshot date and therefore
+        use the *freshest* holdings, so grouping by position in the window
+        answers the question backwards.
+        """
+        if self.frame.empty or self.snapshot_as_of is None:
             return pd.DataFrame()
         frame = self.frame.copy()
-        newest = frame.index.max()
-        frame["age_days"] = (newest - frame.index).days
+        frame["age_days"] = (frame.index - pd.Timestamp(self.snapshot_as_of)).days
         edges = pd.qcut(frame["age_days"], q=min(buckets, frame["age_days"].nunique()),
                         duplicates="drop")
         return (
@@ -99,7 +112,7 @@ def run_backtest(
     frame = align_lag(estimated, actual, lag)
     if frame.empty:
         raise RuntimeError("Ingen overlappende dager mellom estimat og faktisk NAV.")
-    return BacktestResult(fund_id=fund.id, frame=frame.tail(days), lag=lag)
+    return BacktestResult(fund.id, frame.tail(days), lag, snapshot.as_of)
 
 
 def estimate_series(
@@ -197,7 +210,7 @@ def compare_lags(
     for lag in lags:
         frame = align_lag(estimated, actual, lag)
         if not frame.empty:
-            results.append(BacktestResult(fund.id, frame.tail(days), lag))
+            results.append(BacktestResult(fund.id, frame.tail(days), lag, snapshot.as_of))
     return results
 
 
@@ -216,7 +229,7 @@ def compare_currency(
         frame = align_lag(estimated, actual, 0)
         if frame.empty:
             raise RuntimeError("Ingen overlappende dager mellom estimat og faktisk NAV.")
-        out.append(BacktestResult(fund.id, frame.tail(days), 0))
+        out.append(BacktestResult(fund.id, frame.tail(days), 0, snapshot.as_of))
     return out[0], out[1]
 
 

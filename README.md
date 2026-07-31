@@ -171,10 +171,16 @@ kveldsestimatet gjelder dagen det kjøres.
 feil, uten gir 0,612 — forskjellen er for liten til å bety noe. Valutaleddet
 beholdes, som er det riktige for et usikret fond i kroner.
 
-**Hvor ofte må beholdningene oppdateres?** Sjelden. Feilen gruppert etter
-snapshot-alder er flat — 0,78 / 0,52 / 0,74 / 0,50 %-poeng fra ferskest til
-eldst. Et snapshot på tre måneder er like godt som et på tre dager, så
-manuell oppdatering én gang i måneden er rikelig.
+**Hjelper det å se hele porteføljen?** Nei. Med de 25 største postene, altså
+79,8 % av fondet, var snittfeilen 0,632 %-poeng. Med alle 63 postene og 98,5 %
+dekning ble den 0,639. De manglende beholdningene var aldri forklaringen på
+avviket, og den antakelsen kostet flere runder å avlive.
+
+**Hvor ofte må beholdningene oppdateres?** Uavklart. Målingen som skulle svare
+grupperte i praksis etter hvor langt tilbake dagen lå, ikke etter hvor gammelt
+snapshotet var — og de to går motsatt vei, siden de eldste dagene i vinduet
+ligger nærmest snapshot-datoen. Det er rettet, men konklusjonen mangler til
+neste kjøring.
 
 ## Status
 
