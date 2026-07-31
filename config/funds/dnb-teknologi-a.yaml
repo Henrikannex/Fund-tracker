@@ -1,0 +1,73 @@
+id: dnb-teknologi-a
+name: DNB Teknologi A
+isin: NO0010337678
+currency: NOK
+
+# Total pris (TER) i prosent per år, slik Nordnet oppgir den.
+# Trekkes fra estimatet fordelt på handelsdager.
+total_cost_pct: 1.14
+trading_days_per_year: 252
+
+holdings_source:
+  type: nordnet
+  # TODO: fyll inn fra Nordnet-URL-en, f.eks. .../market/funds/16802428
+  instrument_id: null
+  url: null
+  # Fallback som brukes hvis scrapingen feiler eller instrument_id mangler.
+  # Kolonner: name,weight_pct
+  manual_file: config/funds/dnb-teknologi-a.holdings.csv
+
+nav_source:
+  # Faktisk NAV-historikk, brukt til backtest og til å måle bom i etterkant.
+  # Yahoo lister mange europeiske fond under Morningstar-IDen sin.
+  # TODO: verifiser at denne gir data - hvis ikke, bruk manual_file.
+  type: yahoo
+  ticker: 0P00000MVB.OL
+  manual_file: data/nav/dnb-teknologi-a.csv
+
+# Navn slik Nordnet skriver dem -> pristicker og noteringsvaluta.
+#
+# Valutaen er ikke kosmetikk: fondet er i NOK, så avkastningen til hver post er
+# lokal kursendring GANGE valutaendring mot NOK. Velger vi feil notering for et
+# selskap med flere lister (STM i Paris vs. New York), blir valutaleddet feil
+# selv om kursutviklingen er nesten identisk.
+#
+# Hovedregel brukt under: europeiske selskaper antas holdt på primærnoteringen
+# i Europa, ikke som ADR i USA. Dette bør verifiseres mot DNBs årsrapport.
+tickers:
+  # --- USA, USD. Disse er entydige. ---
+  Microsoft:                   {ticker: MSFT,      currency: USD}
+  Amazon.com:                  {ticker: AMZN,      currency: USD}
+  Alphabet A:                  {ticker: GOOGL,     currency: USD}
+  Meta Platforms A:            {ticker: META,      currency: USD}
+  NVIDIA:                      {ticker: NVDA,      currency: USD}
+  Atlassian A:                 {ticker: TEAM,      currency: USD}
+  Visa:                        {ticker: V,         currency: USD}
+  Broadcom:                    {ticker: AVGO,      currency: USD}
+  Oracle:                      {ticker: ORCL,      currency: USD}
+  Mastercard:                  {ticker: MA,        currency: USD}
+  Apple:                       {ticker: AAPL,      currency: USD}
+  T-Mobile US:                 {ticker: TMUS,      currency: USD}
+  # Logoen på Nordnet er HP Inc., ikke Hewlett Packard Enterprise (HPE).
+  HP:                          {ticker: HPQ,       currency: USD}
+
+  # --- Europa, primærnotering. VERIFISER disse. ---
+  Ericsson B:                  {ticker: ERIC-B.ST, currency: SEK}
+  STMicroelectronics NV:       {ticker: STMPA.PA,  currency: EUR}
+  Sap SE:                      {ticker: SAP.DE,    currency: EUR}
+  Dassault Systemes SE:        {ticker: DSY.PA,    currency: EUR}
+  ADYEN:                       {ticker: ADYEN.AS,  currency: EUR}
+  Nokia:                       {ticker: NOKIA.HE,  currency: EUR}
+  Nordic Semiconductor:        {ticker: NOD.OL,    currency: NOK}
+
+  # --- Asia ---
+  # Navnet sier eksplisitt GDR Reg S, altså London-noteringen i USD,
+  # ikke Seoul-aksjen. Denne er derfor entydig.
+  Samsung Electr-Gdr Reg S:    {ticker: SMSN.IL,   currency: USD}
+  Sony Group Corporation:      {ticker: 6758.T,    currency: JPY}
+
+# Navn som med vilje ikke prises (kontanter, derivater, pengemarked).
+# Vekten deres holdes utenfor aksjeavkastningen.
+ignore:
+  - Kontanter
+  - Cash

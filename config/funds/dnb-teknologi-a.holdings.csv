@@ -1,0 +1,29 @@
+# Manuell fallback for beholdninger. Brukes hvis Nordnet-scrapingen ikke er
+# konfigurert eller feiler. Kilde: Nordnet "Største eierandeler", 29.07.2026.
+#
+# UFULLSTENDIG: dette er bare de radene som var synlige uten å scrolle.
+# Summen er 75,30 %, resten av fondet mangler. Scroll hele panelet på Nordnet
+# og lim inn de resterende radene her, så faller usikkerheten merkbart.
+name,weight_pct
+Microsoft,9.14
+Amazon.com,6.84
+Alphabet A,6.52
+Meta Platforms A,4.61
+NVIDIA,4.57
+Atlassian A,4.25
+Visa,4.19
+Broadcom,3.50
+Ericsson B,3.35
+STMicroelectronics NV,3.13
+Oracle,2.74
+Mastercard,2.62
+Sap SE,2.58
+Apple,2.45
+Samsung Electr-Gdr Reg S,2.42
+HP,2.27
+Dassault Systemes SE,1.90
+Sony Group Corporation,1.88
+ADYEN,1.67
+Nokia,1.59
+T-Mobile US,1.56
+Nordic Semiconductor,1.52

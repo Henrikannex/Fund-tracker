@@ -1,0 +1,300 @@
+"""Where the portfolio composition comes from.
+
+Two implementations today:
+
+* ``manual``  - a CSV in the repo. Boring, always works, easy to correct by hand.
+* ``nordnet`` - Nordnet's own JSON, with the CSV as a fallback.
+
+The Nordnet reader is written defensively on purpose. Nordnet does not publish
+a documented endpoint for fund holdings, so we try the shapes their web client
+is known to use and report clearly which one answered. Use the ``probe``
+command to find out what works from a machine that can actually reach them.
+"""
+
+from __future__ import annotations
+
+import csv
+import io
+import logging
+from datetime import date, datetime
+from pathlib import Path
+from typing import Any, Iterable, Optional
+
+import requests
+
+from ..config import REPO_ROOT, FundConfig
+from ..models import Holding, HoldingsSnapshot
+
+log = logging.getLogger(__name__)
+
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+)
+TIMEOUT = 30
+
+# Candidate endpoints, tried in order. ``{id}`` is the Nordnet instrument id.
+NORDNET_ENDPOINTS = [
+    "https://www.nordnet.no/api/2/funds/{id}/holdings",
+    "https://www.nordnet.no/api/2/funds/{id}",
+    "https://www.nordnet.no/api/2/instruments/{id}/fund_holdings",
+    "https://www.nordnet.no/api/2/instruments/{id}",
+]
+
+# Keys Nordnet/Morningstar payloads have used for the same two concepts.
+NAME_KEYS = ("name", "instrument_name", "holding_name", "security_name", "companyName")
+WEIGHT_KEYS = ("weight", "weight_pct", "percentage", "share", "weighting", "percent")
+
+
+def load_holdings(fund: FundConfig) -> HoldingsSnapshot:
+    """Fetch holdings using whatever source the fund config asks for."""
+    spec = fund.holdings_source or {}
+    kind = (spec.get("type") or "manual").lower()
+
+    if kind == "manual":
+        return _from_manual(fund, spec)
+    if kind == "nordnet":
+        try:
+            return _from_nordnet(fund, spec)
+        except Exception as exc:  # noqa: BLE001 - fallback must survive anything
+            log.warning("Nordnet-henting feilet (%s); faller tilbake til manuell fil", exc)
+            snap = _from_manual(fund, spec)
+            snap.source = f"manual (Nordnet feilet: {exc})"
+            return snap
+    raise ValueError(f"Ukjent holdings_source.type: {kind!r}")
+
+
+def _from_manual(fund: FundConfig, spec: dict[str, Any]) -> HoldingsSnapshot:
+    rel = spec.get("manual_file")
+    if not rel:
+        raise ValueError(f"{fund.id}: holdings_source.manual_file mangler")
+    path = _resolve(rel)
+    if not path.exists():
+        raise FileNotFoundError(f"Fant ikke beholdningsfil: {path}")
+
+    holdings = list(_parse_csv(path.read_text(encoding="utf-8")))
+    if not holdings:
+        raise ValueError(f"{path} inneholder ingen beholdninger")
+
+    return HoldingsSnapshot(
+        fund_id=fund.id,
+        retrieved=date.today(),
+        source=f"manual:{rel}",
+        holdings=holdings,
+        as_of=_as_of_from_spec(spec),
+        cash_pct=spec.get("cash_pct"),
+        equity_pct=spec.get("equity_pct"),
+    )
+
+
+def _parse_csv(text: str) -> Iterable[Holding]:
+    lines = [ln for ln in text.splitlines() if ln.strip() and not ln.lstrip().startswith("#")]
+    for row in csv.DictReader(io.StringIO("\n".join(lines))):
+        name = (row.get("name") or "").strip()
+        raw_weight = (row.get("weight_pct") or "").strip().replace("%", "").replace(",", ".")
+        if not name or not raw_weight:
+            continue
+        yield Holding(name=name, weight_pct=float(raw_weight))
+
+
+def _from_nordnet(fund: FundConfig, spec: dict[str, Any]) -> HoldingsSnapshot:
+    instrument_id = spec.get("instrument_id")
+    if not instrument_id:
+        raise ValueError(
+            "holdings_source.instrument_id er ikke satt. Finn den i Nordnet-URL-en "
+            "til fondet (f.eks. .../market/funds/16802428) og legg den i konfigen."
+        )
+
+    session = _session()
+    last_error: Optional[str] = None
+    for template in NORDNET_ENDPOINTS:
+        url = template.format(id=instrument_id)
+        try:
+            response = session.get(url, timeout=TIMEOUT)
+        except requests.RequestException as exc:
+            last_error = f"{url}: {exc}"
+            continue
+        if response.status_code != 200:
+            last_error = f"{url}: HTTP {response.status_code}"
+            continue
+        try:
+            payload = response.json()
+        except ValueError:
+            last_error = f"{url}: svarte ikke JSON"
+            continue
+
+        holdings = list(_extract_holdings(payload))
+        if holdings:
+            log.info("Hentet %d beholdninger fra %s", len(holdings), url)
+            return HoldingsSnapshot(
+                fund_id=fund.id,
+                retrieved=date.today(),
+                source=f"nordnet:{url}",
+                holdings=holdings,
+                as_of=_find_as_of(payload),
+                cash_pct=_find_pct(payload, ("cash", "cash_weight", "cashPercentage")),
+                equity_pct=_find_pct(payload, ("equity", "equity_weight", "stockPercentage")),
+            )
+        last_error = f"{url}: JSON uten gjenkjennelige beholdninger"
+
+    raise RuntimeError(f"Ingen Nordnet-endepunkter ga beholdninger. Siste feil: {last_error}")
+
+
+def _session() -> requests.Session:
+    session = requests.Session()
+    session.headers.update(
+        {
+            "User-Agent": USER_AGENT,
+            "Accept": "application/json",
+            "Accept-Language": "nb-NO,nb;q=0.9,en;q=0.8",
+            "Referer": "https://www.nordnet.no/",
+        }
+    )
+    return session
+
+
+def _extract_holdings(payload: Any) -> Iterable[Holding]:
+    """Walk an unknown JSON shape and pull out anything name+weight shaped."""
+    for node in _walk_lists(payload):
+        found = []
+        for item in node:
+            if not isinstance(item, dict):
+                break
+            name = _first(item, NAME_KEYS)
+            weight = _first(item, WEIGHT_KEYS)
+            if not isinstance(name, str) or not isinstance(weight, (int, float)):
+                break
+            found.append(Holding(name=name.strip(), weight_pct=float(weight)))
+        # A holdings list has several entries and weights that look like percent.
+        if len(found) >= 5 and 20.0 <= sum(h.weight_pct for h in found) <= 105.0:
+            return found
+    return []
+
+
+def _walk_lists(node: Any) -> Iterable[list]:
+    if isinstance(node, list):
+        yield node
+        for child in node:
+            yield from _walk_lists(child)
+    elif isinstance(node, dict):
+        for child in node.values():
+            yield from _walk_lists(child)
+
+
+def _first(item: dict, keys: tuple[str, ...]) -> Any:
+    for key in keys:
+        if key in item:
+            return item[key]
+    return None
+
+
+def _find_as_of(payload: Any) -> Optional[date]:
+    for key in ("as_of_date", "portfolio_date", "holdings_date", "date", "asOfDate"):
+        value = _deep_get(payload, key)
+        if isinstance(value, str):
+            for fmt in ("%Y-%m-%d", "%d.%m.%Y", "%Y-%m-%dT%H:%M:%S"):
+                try:
+                    return datetime.strptime(value[: len(fmt) + 2].strip(), fmt).date()
+                except ValueError:
+                    continue
+    return None
+
+
+def _find_pct(payload: Any, keys: tuple[str, ...]) -> Optional[float]:
+    for key in keys:
+        value = _deep_get(payload, key)
+        if isinstance(value, (int, float)):
+            return float(value)
+    return None
+
+
+def _deep_get(node: Any, key: str) -> Any:
+    if isinstance(node, dict):
+        if key in node:
+            return node[key]
+        for child in node.values():
+            found = _deep_get(child, key)
+            if found is not None:
+                return found
+    elif isinstance(node, list):
+        for child in node:
+            found = _deep_get(child, key)
+            if found is not None:
+                return found
+    return None
+
+
+def probe_nordnet(instrument_id: str) -> list[tuple[str, str]]:
+    """Try every candidate endpoint and report what came back.
+
+    Run this from somewhere with real network access (a GitHub Actions run is
+    fine) to find out which shape Nordnet actually serves today.
+    """
+    session = _session()
+    results: list[tuple[str, str]] = []
+    for template in NORDNET_ENDPOINTS:
+        url = template.format(id=instrument_id)
+        try:
+            response = session.get(url, timeout=TIMEOUT)
+        except requests.RequestException as exc:
+            results.append((url, f"FEIL: {exc}"))
+            continue
+        summary = f"HTTP {response.status_code}, {len(response.content)} bytes"
+        if response.status_code == 200:
+            try:
+                payload = response.json()
+            except ValueError:
+                summary += ", ikke JSON"
+            else:
+                found = list(_extract_holdings(payload))
+                summary += f", JSON, {len(found)} beholdninger gjenkjent"
+                if found:
+                    preview = ", ".join(f"{h.name} {h.weight_pct}" for h in found[:3])
+                    summary += f" ({preview} ...)"
+        results.append((url, summary))
+    return results
+
+
+def _as_of_from_spec(spec: dict[str, Any]) -> Optional[date]:
+    value = spec.get("as_of")
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.strptime(value, "%Y-%m-%d").date()
+        except ValueError:
+            return None
+    return None
+
+
+def _resolve(rel: str) -> Path:
+    path = Path(rel)
+    return path if path.is_absolute() else REPO_ROOT / path
+
+
+def save_snapshot(snapshot: HoldingsSnapshot, directory: Path) -> Path:
+    """Persist a snapshot so we can see when the composition actually changed."""
+    import json
+
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"{snapshot.retrieved.isoformat()}.json"
+    path.write_text(
+        json.dumps(
+            {
+                "fund_id": snapshot.fund_id,
+                "retrieved": snapshot.retrieved.isoformat(),
+                "as_of": snapshot.as_of.isoformat() if snapshot.as_of else None,
+                "source": snapshot.source,
+                "cash_pct": snapshot.cash_pct,
+                "equity_pct": snapshot.equity_pct,
+                "holdings": [
+                    {"name": h.name, "weight_pct": h.weight_pct} for h in snapshot.holdings
+                ],
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return path

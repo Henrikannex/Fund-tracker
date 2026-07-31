@@ -1,0 +1,78 @@
+name: Dagens fondsestimat
+
+on:
+  schedule:
+    # GitHub-cron er alltid UTC, så vi ankrer til amerikansk stengetid (16:00 ET):
+    #   20:15 UTC = 22:15 norsk tid når USA har sommertid (mars-november)
+    #   21:15 UTC = 22:15 norsk tid når USA har vintertid
+    # Begge kjører hele året. Den andre avslutter uten å gjøre noe dersom
+    # dagens estimat allerede er logget, så vi slipper datomatematikk.
+    - cron: "15 20 * * 1-5"
+    - cron: "15 21 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      fund:
+        description: Fond-ID
+        default: dnb-teknologi-a
+      date:
+        description: Dato (YYYY-MM-DD), tomt = i dag
+        default: ""
+      send_email:
+        description: Send e-post
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-estimate
+  cancel-in-progress: false
+
+jobs:
+  estimate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Oppdater beholdninger
+        # Skal ikke velte hele kjøringen: estimatet faller tilbake på
+        # den manuelle beholdningsfilen hvis Nordnet ikke svarer.
+        continue-on-error: true
+        run: python -m fundtracker.cli snapshot "${{ inputs.fund || 'dnb-teknologi-a' }}"
+        env:
+          PYTHONPATH: src
+
+      - name: Regn ut og send estimat
+        run: |
+          python -m fundtracker.cli estimate \
+            "${{ inputs.fund || 'dnb-teknologi-a' }}" \
+            ${{ inputs.date && format('--date {0}', inputs.date) || '' }} \
+            --save --skip-if-logged \
+            ${{ (github.event_name == 'schedule' || inputs.send_email) && '--email' || '' }}
+        env:
+          PYTHONPATH: src
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+
+      - name: Lagre estimat og beholdninger i repoet
+        run: |
+          if [ -z "$(git status --porcelain data)" ]; then
+            echo "Ingen endringer i data/"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git commit -m "data: estimat og beholdninger $(date -u +%Y-%m-%d)"
+          git push

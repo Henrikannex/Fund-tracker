@@ -1,0 +1,54 @@
+name: Diagnostikk
+
+# Kjøres for hånd. Dette er verktøyet for å finne ut hva som faktisk virker mot
+# Nordnet og Yahoo, siden det ikke kan testes fra et miljø uten nettilgang.
+
+on:
+  workflow_dispatch:
+    inputs:
+      fund:
+        description: Fond-ID
+        default: dnb-teknologi-a
+      task:
+        description: Hva skal kjøres
+        type: choice
+        default: alt
+        options: [alt, probe, resolve, estimate, backtest]
+      backtest_days:
+        description: Antall handelsdager i backtesten
+        default: "250"
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
+      FUND: ${{ inputs.fund }}
+      TASK: ${{ inputs.task }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: Hvilke Nordnet-endepunkter svarer
+        if: ${{ inputs.task == 'alt' || inputs.task == 'probe' }}
+        continue-on-error: true
+        run: python -m fundtracker.cli probe "$FUND"
+
+      - name: Ticker-dekning
+        if: ${{ inputs.task == 'alt' || inputs.task == 'resolve' }}
+        continue-on-error: true
+        run: python -m fundtracker.cli resolve "$FUND"
+
+      - name: Estimat for siste handelsdag
+        if: ${{ inputs.task == 'alt' || inputs.task == 'estimate' }}
+        continue-on-error: true
+        run: python -m fundtracker.cli -v estimate "$FUND"
+
+      - name: Backtest mot faktisk NAV
+        if: ${{ inputs.task == 'alt' || inputs.task == 'backtest' }}
+        continue-on-error: true
+        run: python -m fundtracker.cli backtest "$FUND" --days "${{ inputs.backtest_days }}"
