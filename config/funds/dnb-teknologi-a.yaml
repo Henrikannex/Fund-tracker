@@ -29,11 +29,13 @@ holdings_source:
   manual_file: config/funds/dnb-teknologi-a.holdings.csv
   # Dato beholdningene gjelder fra, hvis Nordnet oppgir den. Uten denne måles
   # snapshot-alder fra da fila sist ble hentet, som undervurderer alderen.
-  as_of: null
-  # Fra "Fordeling"-boksen på Nordnet, 31.07.2026. Kontanter gir null
-  # avkastning på en dag, så aksjeavkastningen skaleres med 98,4 %.
-  cash_pct: 1.6
-  equity_pct: 98.5
+  # Datoen Morningstar oppgir for beholdningslista. Fire måneder gammel, men
+  # backtesten viser at feilen ikke vokser med snapshot-alder, så det holder.
+  as_of: 2026-03-31
+  # Bankkonti i ti valutaer, til sammen 1,546 %. Behandles som null avkastning:
+  # valutaeffekten på 1,5 % av fondet er under et hundredels prosentpoeng.
+  cash_pct: 1.546
+  equity_pct: 98.454
 
 nav_source:
   # Faktisk NAV-historikk. Uten denne kan modellen ikke valideres i det hele
@@ -62,42 +64,83 @@ nav_source:
 # Tyskland, ASML Nederland, Nokia Finland, Sony USA (altså ADR-en, ikke
 # Tokyo-aksjen), og Samsung som allerede het GDR i navnet.
 tickers:
-  # --- USA, USD. Disse er entydige. ---
-  Microsoft:                   {ticker: MSFT,      currency: USD}
-  Amazon.com:                  {ticker: AMZN,      currency: USD}
-  Alphabet A:                  {ticker: GOOGL,     currency: USD}
-  Meta Platforms A:            {ticker: META,      currency: USD}
-  NVIDIA:                      {ticker: NVDA,      currency: USD}
-  Atlassian A:                 {ticker: TEAM,      currency: USD}
-  Visa:                        {ticker: V,         currency: USD}
-  Broadcom:                    {ticker: AVGO,      currency: USD}
-  Oracle:                      {ticker: ORCL,      currency: USD}
-  Mastercard:                  {ticker: MA,        currency: USD}
-  Apple:                       {ticker: AAPL,      currency: USD}
-  T-Mobile US:                 {ticker: TMUS,      currency: USD}
-  Marvell Technology:          {ticker: MRVL,      currency: USD}
-  ServiceNow:                  {ticker: NOW,       currency: USD}
-  # Logoen på Nordnet er HP Inc., ikke Hewlett Packard Enterprise (HPE).
-  HP:                          {ticker: HPQ,       currency: USD}
+  # --- USA, USD. Entydige. ---
+  Microsoft Corp:                          {ticker: MSFT,      currency: USD}
+  Amazon.com Inc:                          {ticker: AMZN,      currency: USD}
+  Alphabet Inc Class A:                    {ticker: GOOGL,     currency: USD}
+  Meta Platforms Inc Class A:              {ticker: META,      currency: USD}
+  NVIDIA Corp:                             {ticker: NVDA,      currency: USD}
+  Atlassian Corp Class A:                  {ticker: TEAM,      currency: USD}
+  Visa Inc Class A:                        {ticker: V,         currency: USD}
+  Broadcom Inc:                            {ticker: AVGO,      currency: USD}
+  Oracle Corp:                             {ticker: ORCL,      currency: USD}
+  Mastercard Inc Class A:                  {ticker: MA,        currency: USD}
+  Apple Inc:                               {ticker: AAPL,      currency: USD}
+  HP Inc:                                  {ticker: HPQ,       currency: USD}
+  T-Mobile US Inc:                         {ticker: TMUS,      currency: USD}
+  Marvell Technology Inc:                  {ticker: MRVL,      currency: USD}
+  ServiceNow Inc:                          {ticker: NOW,       currency: USD}
+  Check Point Software Technologies Ltd:   {ticker: CHKP,      currency: USD}
+  Booking Holdings Inc:                    {ticker: BKNG,      currency: USD}
+  Match Group Inc Ordinary Shares - New:   {ticker: MTCH,      currency: USD}
+  Peloton Interactive Inc:                 {ticker: PTON,      currency: USD}
+  Qualcomm Inc:                            {ticker: QCOM,      currency: USD}
+  Arrow Electronics Inc:                   {ticker: ARW,       currency: USD}
+  Skyworks Solutions Inc:                  {ticker: SWKS,      currency: USD}
+  Advanced Micro Devices Inc:              {ticker: AMD,       currency: USD}
+  Cisco Systems Inc:                       {ticker: CSCO,      currency: USD}
+  Accenture PLC Class A:                   {ticker: ACN,       currency: USD}
+  Arista Networks Inc:                     {ticker: ANET,      currency: USD}
+  Adtran Holdings Inc:                     {ticker: ADTN,      currency: USD}
+  Intel Corp:                              {ticker: INTC,      currency: USD}
+  AppLovin Corp Ordinary Shares - Class A: {ticker: APP,       currency: USD}
+  Netflix Inc:                             {ticker: NFLX,      currency: USD}
+  Cirrus Logic Inc:                        {ticker: CRUS,      currency: USD}
+  Salesforce Inc:                          {ticker: CRM,       currency: USD}
+  Applied Materials Inc:                   {ticker: AMAT,      currency: USD}
+  Micron Technology Inc:                   {ticker: MU,        currency: USD}
+  Mobileye Global Inc Ordinary Shares - Class A: {ticker: MBLY, currency: USD}
+  Datadog Inc Class A:                     {ticker: DDOG,      currency: USD}
 
-  # --- Europa, primærnotering. VERIFISER disse. ---
-  Ericsson B:                  {ticker: ERIC-B.ST, currency: SEK}
-  STMicroelectronics NV:       {ticker: STMPA.PA,  currency: EUR}
-  Sap SE:                      {ticker: SAP.DE,    currency: EUR}
-  Dassault Systemes SE:        {ticker: DSY.PA,    currency: EUR}
-  ADYEN:                       {ticker: ADYEN.AS,  currency: EUR}
-  ASML HOLDING:                {ticker: ASML.AS,   currency: EUR}
-  Nokia:                       {ticker: NOKIA.HE,  currency: EUR}
-  Nordic Semiconductor:        {ticker: NOD.OL,    currency: NOK}
-
-  # --- Asiatiske selskaper, men ikke asiatiske noteringer ---
-  # Navnet sier eksplisitt GDR Reg S, altså London-noteringen i USD,
-  # ikke Seoul-aksjen.
-  Samsung Electr-Gdr Reg S:    {ticker: SMSN.IL,   currency: USD}
+  # --- ADR-er og GDR-er. Navnet oppgir noteringen, så disse er entydige. ---
+  Samsung Electr-Gdr Reg S:                {ticker: SMSN.IL,   currency: USD}
+  Criteo Sa-Spon Adr:                      {ticker: CRTO,      currency: USD}
+  Taiwan Semiconductor-Sp Adr:             {ticker: TSM,       currency: USD}
   # Amerikansk flagg på Nordnet, altså ADR-en i New York. Det er ikke bare et
   # valutaspørsmål: Tokyo stenger 08:00 norsk tid, New York 22:00. ADR-en
   # prises altså på samme klokkeslett som resten av fondet.
-  Sony Group Corporation:      {ticker: SONY,      currency: USD}
+  Sony Group Corp:                         {ticker: SONY,      currency: USD}
+
+  # --- Europa, primærnotering. Bekreftet mot landflaggene på Nordnet. ---
+  Telefonaktiebolaget L M Ericsson Class B: {ticker: ERIC-B.ST, currency: SEK}
+  STMicroelectronics NV:                   {ticker: STMPA.PA,  currency: EUR}
+  SAP SE:                                  {ticker: SAP.DE,    currency: EUR}
+  Dassault Systemes SE:                    {ticker: DSY.PA,    currency: EUR}
+  Adyen NV:                                {ticker: ADYEN.AS,  currency: EUR}
+  ASML Holding NV:                         {ticker: ASML.AS,   currency: EUR}
+  Nokia Oyj:                               {ticker: NOKIA.HE,  currency: EUR}
+  Deutsche Telekom AG:                     {ticker: DTE.DE,    currency: EUR}
+  Infineon Technologies AG:                {ticker: IFX.DE,    currency: EUR}
+  TomTom NV:                               {ticker: TOM2.AS,   currency: EUR}
+  Ubisoft Entertainment:                   {ticker: UBI.PA,    currency: EUR}
+
+  # --- Norden. Dette er halen som manglet, og den oppfører seg ikke som
+  # de amerikanske gigantene. ---
+  Nordic Semiconductor ASA:                {ticker: NOD.OL,    currency: NOK}
+  Atea ASA:                                {ticker: ATEA.OL,   currency: NOK}
+  Telia Company AB:                        {ticker: TELIA.ST,  currency: SEK}
+  Embracer Group AB:                       {ticker: EMBRAC-B.ST, currency: SEK}
+  Asmodee Group AB Ordinary Shares - Class B: {ticker: ASMODEE-B.ST, currency: SEK}
+  Coffee Stain Group AB Ordinary Shares - Class B: {ticker: COFFEE-B.ST, currency: SEK}
+  Stillfront Group AB:                     {ticker: SF.ST,     currency: SEK}
+  Dustin Group AB:                         {ticker: DUST.ST,   currency: SEK}
+  Cint Group AB Ordinary Shares:           {ticker: CINT.ST,   currency: SEK}
+
+  # --- Usikre noteringer. Begge er dobbeltnotert, og valget endrer
+  # valutaleddet selv om kursutviklingen er nesten lik. ---
+  # Fondet har HKD på bankkonto, hvilket peker mot Hongkong-noteringen.
+  Lenovo Group Ltd:                        {ticker: "0992.HK", currency: HKD}
+  Logitech International SA:               {ticker: LOGN.SW,   currency: CHF}
 
 # Fasit å måle modellen mot, siden ingen NAV-tidsserie er tilgjengelig.
 # Tallene står under kursgrafen på Nordnets fondsside, alle per samme dato.
@@ -123,3 +166,5 @@ benchmarks:
 ignore:
   - Kontanter
   - Cash
+  # Restitusjonskrav, ikke omsettelige papirer. Til sammen 0,014 % av fondet.
+  - Aim Restitution Equity

@@ -1,35 +1,78 @@
-# Manuell fallback for beholdninger. Brukes hvis Nordnet-scrapingen ikke er
-# konfigurert eller feiler. Kilde: Nordnet "Største eierandeler", 29.07.2026.
+# Komplett beholdningsliste for DNB Teknologi, per 31.03.2026.
+# Kilde: Morningstar fund-holdings, fond-ID F0000027G1.
 #
-# Hele lista, scrollet til bunnen: nøyaktig 25 rader som summerer til 79,83 %.
+# 65 aksjeposter som summerer til 98,454 %, resten er bankkonti i ti valutaer.
+# Erstatter den tidligere lista på 25 poster fra Nordnet, som stoppet på
+# 79,83 % fordi Morningstars gratisdata er kappet der.
 #
-# 25 er ikke et tilfeldig tall. Det er grensen for Morningstars gratisdata, som
-# Nordnet henter dette fra. Lista er altså kappet, ikke uttømt - de resterende
-# 20,17 % er en hale av mindre poster vi ikke får se herfra. Full portefølje
-# finnes bare i DNBs egne måneds- og årsrapporter.
+# Halen er ikke en miniatyr av toppen: under de amerikanske gigantene ligger
+# Telia, Embracer, Asmodee, Stillfront, Dustin, Cint og Atea. Nordisk IT og
+# svenske spillselskaper beveger seg lite som Microsoft og Nvidia, og det er
+# grunnen til at estimatet bommet da de manglet.
+#
+# Lista er hentet fra andelsklasse R. Beholdningene er felles for alle
+# andelsklasser i et fond; det er bare forvaltningshonoraret som skiller dem.
 name,weight_pct
-Microsoft,9.14
-Amazon.com,6.84
-Alphabet A,6.52
-Meta Platforms A,4.61
-NVIDIA,4.57
-Atlassian A,4.25
-Visa,4.19
-Broadcom,3.50
-Ericsson B,3.35
-STMicroelectronics NV,3.13
-Oracle,2.74
-Mastercard,2.62
-Sap SE,2.58
-Apple,2.45
-Samsung Electr-Gdr Reg S,2.42
-HP,2.27
-Dassault Systemes SE,1.90
-Sony Group Corporation,1.88
-ADYEN,1.67
-Nokia,1.59
-T-Mobile US,1.56
-Nordic Semiconductor,1.52
-Marvell Technology,1.52
-ASML HOLDING,1.51
-ServiceNow,1.50
+Microsoft Corp,9.139
+Amazon.com Inc,6.838
+Alphabet Inc Class A,6.521
+Meta Platforms Inc Class A,4.610
+NVIDIA Corp,4.565
+Atlassian Corp Class A,4.245
+Visa Inc Class A,4.193
+Broadcom Inc,3.503
+Telefonaktiebolaget L M Ericsson Class B,3.345
+STMicroelectronics NV,3.132
+Oracle Corp,2.745
+Mastercard Inc Class A,2.624
+SAP SE,2.579
+Apple Inc,2.451
+Samsung Electr-Gdr Reg S,2.418
+HP Inc,2.272
+Dassault Systemes SE,1.895
+Sony Group Corp,1.884
+Adyen NV,1.668
+Nokia Oyj,1.587
+T-Mobile US Inc,1.564
+Nordic Semiconductor ASA,1.521
+Marvell Technology Inc,1.521
+ASML Holding NV,1.508
+ServiceNow Inc,1.497
+Check Point Software Technologies Ltd,1.475
+Telia Company AB,1.175
+Booking Holdings Inc,1.057
+Deutsche Telekom AG,1.014
+Logitech International SA,0.997
+Lenovo Group Ltd,0.913
+Match Group Inc Ordinary Shares - New,0.893
+Peloton Interactive Inc,0.827
+Asmodee Group AB Ordinary Shares - Class B,0.811
+Embracer Group AB,0.713
+Criteo Sa-Spon Adr,0.704
+Qualcomm Inc,0.668
+Taiwan Semiconductor-Sp Adr,0.620
+Arrow Electronics Inc,0.616
+Skyworks Solutions Inc,0.612
+Advanced Micro Devices Inc,0.493
+TomTom NV,0.393
+Cisco Systems Inc,0.363
+Accenture PLC Class A,0.356
+Arista Networks Inc,0.331
+Adtran Holdings Inc,0.330
+Infineon Technologies AG,0.312
+Intel Corp,0.309
+AppLovin Corp Ordinary Shares - Class A,0.292
+Netflix Inc,0.283
+Cirrus Logic Inc,0.277
+Salesforce Inc,0.246
+Applied Materials Inc,0.243
+Coffee Stain Group AB Ordinary Shares - Class B,0.227
+Micron Technology Inc,0.210
+Dustin Group AB,0.178
+Mobileye Global Inc Ordinary Shares - Class A,0.170
+Datadog Inc Class A,0.151
+Cint Group AB Ordinary Shares,0.148
+Stillfront Group AB,0.119
+Atea ASA,0.066
+Ubisoft Entertainment,0.043
+Aim Restitution Equity,0.013
