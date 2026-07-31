@@ -30,7 +30,10 @@ holdings_source:
   # Dato beholdningene gjelder fra, hvis Nordnet oppgir den. Uten denne måles
   # snapshot-alder fra da fila sist ble hentet, som undervurderer alderen.
   as_of: null
-  cash_pct: null
+  # Fra "Fordeling"-boksen på Nordnet, 31.07.2026. Kontanter gir null
+  # avkastning på en dag, så aksjeavkastningen skaleres med 98,4 %.
+  cash_pct: 1.6
+  equity_pct: 98.5
 
 nav_source:
   # Faktisk NAV-historikk. Uten denne kan modellen ikke valideres i det hele

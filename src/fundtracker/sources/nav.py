@@ -36,6 +36,14 @@ def load_nav(fund: FundConfig, start: date, end: date) -> pd.Series:
         if series.empty:
             log.warning("Morningstar ga ingen NAV for %s", spec.get("morningstar_secid"))
 
+    instrument_id = spec.get("instrument_id") or (fund.holdings_source or {}).get(
+        "instrument_id"
+    )
+    if series.empty and instrument_id:
+        series = _from_nordnet(str(instrument_id), start, end)
+        if series.empty:
+            log.warning("Nordnet ga ingen NAV for instrument %s", instrument_id)
+
     if series.empty:
         series = _from_manual(spec.get("manual_file"))
         if series.empty:
@@ -72,6 +80,68 @@ def _from_morningstar(spec: dict, currency: str, start: date, end: date) -> pd.S
     except Exception as exc:  # noqa: BLE001 - a dead feed must not break the run
         log.warning("Morningstar NAV-henting feilet: %s", exc)
         return pd.Series(dtype="float64")
+
+
+# Nordnet draws a price chart on every fund page, so the history exists behind
+# some endpoint. These are the shapes their client has been seen to use.
+NORDNET_PRICE_ENDPOINTS = [
+    "https://www.nordnet.no/api/2/instruments/historical/prices/{id}",
+    "https://www.nordnet.no/api/2/instruments/historical/returns/{id}",
+]
+
+
+def _from_nordnet(instrument_id: str, start: date, end: date) -> pd.Series:
+    """NAV history from Nordnet's own chart feed."""
+    import requests
+
+    from .holdings import USER_AGENT
+
+    session = requests.Session()
+    session.headers.update(
+        {"User-Agent": USER_AGENT, "Accept": "application/json",
+         "Referer": "https://www.nordnet.no/"}
+    )
+    for template in NORDNET_PRICE_ENDPOINTS:
+        url = template.format(id=instrument_id)
+        try:
+            response = session.get(
+                url, params={"from": start.isoformat(), "to": end.isoformat(),
+                             "fields": "last"}, timeout=30
+            )
+            response.raise_for_status()
+            series = _parse_nordnet_prices(response.json())
+        except Exception as exc:  # noqa: BLE001 - candidate probing
+            log.debug("Nordnet NAV-kandidat %s feilet: %s", url, exc)
+            continue
+        if not series.empty:
+            log.info("Hentet %d NAV-punkter fra %s", len(series), url)
+            return series
+    return pd.Series(dtype="float64")
+
+
+def _parse_nordnet_prices(payload: Any) -> pd.Series:
+    """Pull [{time, last}] pairs out of whatever nesting Nordnet wraps them in."""
+    rows: dict[Any, float] = {}
+
+    def walk(node: Any) -> None:
+        if isinstance(node, dict):
+            stamp = node.get("time") or node.get("timestamp") or node.get("date")
+            value = node.get("last") or node.get("close") or node.get("value")
+            if isinstance(stamp, (int, float)) and isinstance(value, (int, float)):
+                rows[pd.Timestamp(int(stamp), unit="ms").normalize()] = float(value)
+            elif isinstance(stamp, str) and isinstance(value, (int, float)):
+                try:
+                    rows[pd.Timestamp(stamp).normalize()] = float(value)
+                except ValueError:
+                    pass
+            for child in node.values():
+                walk(child)
+        elif isinstance(node, list):
+            for child in node:
+                walk(child)
+
+    walk(payload)
+    return pd.Series(rows, dtype="float64").sort_index()
 
 
 def _from_manual(rel: Optional[str]) -> pd.Series:
@@ -153,6 +223,19 @@ def probe(fund: FundConfig) -> list[tuple[str, str]]:
             results.extend(morningstar.probe_nav(base, start, end, fund.currency))
         except Exception as exc:  # noqa: BLE001 - probing must not raise
             results.append((f"Morningstar {base}", f"FEIL: {exc}"))
+
+    instrument_id = spec.get("instrument_id") or (fund.holdings_source or {}).get(
+        "instrument_id"
+    )
+    if instrument_id:
+        series = _from_nordnet(str(instrument_id), start, end)
+        results.append((
+            f"Nordnet instrument {instrument_id}",
+            f"{len(series)} kurser, siste {series.iloc[-1]:.2f}"
+            if not series.empty else "ingen data",
+        ))
+    else:
+        results.append(("Nordnet", "instrument_id ikke satt - trenger URL-en fra Nordnet"))
 
     manual = spec.get("manual_file")
     if manual:
