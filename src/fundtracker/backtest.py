@@ -214,6 +214,116 @@ def compare_lags(
     return results
 
 
+def holding_return_series(
+    fund: FundConfig, snapshot: HoldingsSnapshot, start: date, end: date
+) -> pd.DataFrame:
+    """Daily return in the fund's currency for every priced holding."""
+    tickers, currencies = priced_tickers(fund, snapshot)
+    prices, _, _ = price_source.align(price_source.closing_prices(tickers, start, end))
+    fx, _, _ = price_source.align(
+        price_source.fx_to_base(sorted(currencies), fund.currency, start, end)
+    )
+
+    out = {}
+    for holding in snapshot.holdings:
+        mapping = resolve_holding(fund, holding)
+        if mapping is None or mapping.ticker not in prices.columns:
+            continue
+        local = prices[mapping.ticker].pct_change()
+        rate = (
+            fx[mapping.currency].pct_change() if mapping.currency in fx.columns else 0.0
+        )
+        out[holding.name] = ((1 + local) * (1 + rate) - 1) * 100.0
+    return pd.DataFrame(out)
+
+
+def test_weights(
+    fund: FundConfig, snapshot: HoldingsSnapshot, days: int = 250, top: int = 10
+) -> pd.DataFrame:
+    """Test one holding's weight at a time, using our own estimate as a control.
+
+    For each candidate we fit ``actual = a + b*estimate + c*return_of_holding``.
+    Our estimate already contains the holding at the weight we believe; if that
+    weight is right, the holding's return carries no information beyond the
+    estimate and ``c`` lands on zero. Carry too much and ``c`` goes negative by
+    the size of the excess.
+
+    Three parameters against fifty-odd observations is a well-posed fit. The
+    earlier attempt regressed the error on all sixty-three holdings separately,
+    which is neither — tech stocks move together, so each slope absorbed the
+    market instead of the position.
+    """
+    import numpy as np
+
+    estimated, actual = gather_series(fund, snapshot, days)
+    frame = align_lag(estimated, actual, 0)
+    if len(frame) < 30:
+        raise RuntimeError("For få dager til å teste vekter.")
+
+    end = date.today()
+    start = end - timedelta(days=int(days * 1.6) + 15)
+    returns = holding_return_series(fund, snapshot, start, end)
+
+    weights = {h.name: h.weight_pct for h in snapshot.holdings}
+    candidates = sorted(
+        (n for n in returns.columns if n in weights), key=lambda n: -weights[n]
+    )[:top]
+
+    rows = []
+    for name in candidates:
+        joined = pd.concat(
+            [frame[["actual_pct", "estimated_pct"]], returns[name].rename("r")], axis=1
+        ).dropna()
+        if len(joined) < 30:
+            continue
+        X = np.column_stack(
+            [np.ones(len(joined)), joined["estimated_pct"].to_numpy(), joined["r"].to_numpy()]
+        )
+        y = joined["actual_pct"].to_numpy()
+        beta, *_ = np.linalg.lstsq(X, y, rcond=None)
+        resid = y - X @ beta
+        dof = len(joined) - X.shape[1]
+        cov = (resid @ resid / dof) * np.linalg.pinv(X.T @ X)
+        se = float(np.sqrt(cov[2, 2]))
+        rows.append({
+            "name": name,
+            "weight_pct": weights[name],
+            # c is a weight fraction; express it in the same unit as the weights.
+            "weight_error_pct": float(beta[2]) * 100.0,
+            "t": float(beta[2]) / se if se > 0 else float("nan"),
+            "implied_weight_pct": weights[name] + float(beta[2]) * 100.0,
+        })
+    return pd.DataFrame(rows)
+
+
+def format_weight_test(frame: pd.DataFrame) -> str:
+    """Report only what the data can carry: a verdict per holding, with the t."""
+    if frame.empty:
+        return "For lite data til å teste vektene."
+    lines = [
+        "Test av enkeltvekter (actual = a + b*estimat + c*postens avkastning)",
+        "",
+        "  selskap                       vekt   avvik      t   antydet   konklusjon",
+    ]
+    for _, r in frame.iterrows():
+        # |t| under 2 is noise. Saying so beats printing a number that invites
+        # a story, which is how the previous version of this went wrong.
+        verdict = (
+            "for mye" if r["t"] <= -2 else "for lite" if r["t"] >= 2 else "ingen utslag"
+        )
+        lines.append(
+            f"  {r['name'][:27]:<27} {r['weight_pct']:>5.2f} %"
+            f" {r['weight_error_pct']:>+7.2f} {r['t']:>+6.1f}"
+            f" {r['implied_weight_pct']:>8.2f} %   {verdict}"
+        )
+    lines += [
+        "",
+        "  Bare utslag med |t| over 2 betyr noe. Resten er støy, uansett hvor",
+        "  interessant tallet ser ut.",
+    ]
+    return "\n".join(lines)
+
+
 def compare_currency(
     fund: FundConfig, snapshot: HoldingsSnapshot, days: int = 250
 ) -> tuple[BacktestResult, BacktestResult]:

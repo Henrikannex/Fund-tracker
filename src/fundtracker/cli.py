@@ -272,6 +272,14 @@ def cmd_backtest(args) -> int:
     print(backtest_mod.format_currency_comparison(unhedged, hedged))
     print()
 
+    try:
+        print()
+        print(backtest_mod.format_weight_test(
+            backtest_mod.test_weights(fund, snapshot, days=args.days)))
+        print()
+    except RuntimeError as exc:
+        log.warning("Vekttest hoppet over: %s", exc)
+
     results = backtest_mod.compare_lags(fund, snapshot, days=args.days)
     if not results:
         raise RuntimeError("Backtesten kunne ikke kjøres for noen forsinkelse.")
