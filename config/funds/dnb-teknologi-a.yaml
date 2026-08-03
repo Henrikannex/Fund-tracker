@@ -55,8 +55,18 @@ nav_source:
   ticker: 0P00000MVB.OL
   yahoo_stem: 0P00000MVB
   morningstar_secid: F0GBR04NGU
-  # Kolonner: date,nav. Fyll inn for hånd hvis ingen automatisk kilde svarer -
-  # NAV-historikk kan lastes ned fra DNBs egne kurssider.
+
+  # Investing.com fører fondets kurs under Morningstar-koden, og publiserer den
+  # tidligere enn Nordnet viser den. "watch"-kommandoen følger denne siden,
+  # skriver nye dager til fila under og måler estimatet vårt mot dem. Det er
+  # også slik historikken vedlikeholder seg selv i stedet for å limes inn.
+  investing_url: https://www.investing.com/funds/dnb-teknologi-nok-historical-data
+  # Numerisk instrument-id. Står ikke i URL-en, så den letes fram fra
+  # sidekilden når feltet er tomt. Fyll den inn hvis søket viser seg ustabilt.
+  investing_pair_id: null
+
+  # Kolonner: date,nav. Skrives av "watch", og er kilden backtesten leser fra.
+  # Kan fylles inn for hånd hvis siden slutter å svare.
   manual_file: data/nav/dnb-teknologi-a.csv
 
 # Navn slik Nordnet skriver dem -> pristicker og noteringsvaluta.
