@@ -115,7 +115,8 @@ def estimate_return(
     return_pct = equity_return * equity_share * 100.0 - fee
     stale_weight = sum(c.weight_pct for c in priced if c.carried_forward)
 
-    _collect_warnings(warnings, snapshot, covered, unpriced, priced, target, stale_weight)
+    _collect_warnings(warnings, snapshot, covered, unpriced, priced, target,
+                      stale_weight, fund.refresh_hint)
 
     return Estimate(
         fund_id=fund.id,
@@ -231,6 +232,7 @@ def _collect_warnings(
     priced: list[Contribution],
     target: date,
     stale_weight: float,
+    refresh_hint: str = "",
 ) -> None:
     # A portfolio cannot add up to more than itself. Under 100 % is normal —
     # a truncated holdings list — but over means a weight was mistyped or a
@@ -256,9 +258,12 @@ def _collect_warnings(
         )
     age = _snapshot_age(snapshot, target)
     if age is not None and age > SNAPSHOT_AGE_WARN_DAYS:
-        warnings.append(
-            f"Beholdningene er {age} dager gamle. Forvalter kan ha handlet siden da."
-        )
+        # Measured drift is roughly 0.05 percentage points of bias per month of
+        # staleness, so the reminder is worth carrying the fix with it.
+        message = f"Beholdningene er {age} dager gamle. Forvalter kan ha handlet siden da."
+        if refresh_hint:
+            message += f" {refresh_hint}"
+        warnings.append(message)
     if unpriced:
         warnings.append(f"{len(unpriced)} beholdning(er) uten kurs: " + "; ".join(unpriced))
     stale = [c.ticker for c in priced if c.stale_price]

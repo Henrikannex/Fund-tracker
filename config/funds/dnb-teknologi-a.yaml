@@ -8,6 +8,13 @@ currency: NOK
 total_cost_pct: 1.14
 trading_days_per_year: 252
 
+# Følger med i varselet når beholdningene begynner å bli gamle, så påminnelsen
+# kommer med løsningen. Backtesten viser rundt 0,05 %-poeng skjevhet per måned
+# med foreldelse, så to oppdateringer i året holder den under 0,15.
+refresh_hint: >-
+  Hent ny liste fra Morningstar (fond-ID F0000027G1) eller DNBs halvårsrapport
+  på dnbam.com, som skal foreligge senest to måneder etter periodeslutt.
+
 holdings_source:
   # "manual" leser CSV-fila under. Beholdningene endres bare månedlig, så det
   # er to minutter arbeid i måneden mot et scrapingoppsett som ryker hver gang
