@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import date, timedelta
 
 import pandas as pd
@@ -12,6 +13,11 @@ log = logging.getLogger(__name__)
 # How many calendar days of price history to pull beyond the window we need,
 # so that a long holiday stretch still leaves us a previous close to compare to.
 LOOKBACK_PAD_DAYS = 10
+
+# Pause between the individual retries in closing_prices(). Tickers vanish from
+# a batch because Yahoo throttled the lookup, so hammering it again the same
+# second reproduces the failure instead of fixing it.
+RETRY_PAUSE_SECONDS = 2.0
 
 
 def _download(tickers: list[str], start: date, end: date) -> pd.DataFrame:
@@ -58,8 +64,45 @@ def _download(tickers: list[str], start: date, end: date) -> pd.DataFrame:
 
 
 def closing_prices(tickers: list[str], start: date, end: date) -> pd.DataFrame:
-    """Closing prices in each ticker's own listing currency."""
-    return _download(sorted(set(tickers)), start, end)
+    """Closing prices in each ticker's own listing currency.
+
+    Yahoo drops tickers from batch downloads now and then — sometimes a single
+    name, sometimes a whole chunk of twenty. Nothing errors: yfinance fails to
+    look up the ticker's timezone, gives up on it, and the column simply comes
+    back empty for the most recent day. That reads exactly like a market that
+    was closed, so the freshness gate stops the run and no mail goes out.
+
+    The lookups fail because Yahoo throttled them, not because the ticker is
+    gone, so anything missing its last row is fetched again one at a time with
+    a pause in between before we accept the gap as real.
+    """
+    wanted = sorted(set(tickers))
+    frame = _download(wanted, start, end)
+    if frame.empty:
+        return frame
+
+    latest = frame.index.max()
+    missing = [t for t in wanted if pd.isna(frame.at[latest, t])]
+    if not missing:
+        return frame
+
+    log.warning(
+        "Yahoo ga ingen kurs for %s på %s; henter dem enkeltvis.",
+        ", ".join(missing), latest.date(),
+    )
+    for ticker in missing:
+        time.sleep(RETRY_PAUSE_SECONDS)
+        retry = _download([ticker], start, end)
+        if retry.empty or ticker not in retry.columns:
+            continue
+        # Only fill the holes, so a good batch value is never overwritten.
+        frame[ticker] = frame[ticker].combine_first(retry[ticker])
+
+    still = [t for t in missing if pd.isna(frame.at[latest, t])]
+    if still:
+        log.warning("Fortsatt uten kurs for %s etter nytt forsøk: %s",
+                    latest.date(), ", ".join(still))
+    return frame
 
 
 def fx_to_base(currencies: list[str], base: str, start: date, end: date) -> pd.DataFrame:
@@ -73,7 +116,10 @@ def fx_to_base(currencies: list[str], base: str, start: date, end: date) -> pd.D
     foreign = [c for c in wanted if c != base]
 
     pairs = {c: f"{c}{base}=X" for c in foreign}
-    frame = _download(list(pairs.values()), start, end) if pairs else pd.DataFrame()
+    # Same retry as for equities. A dropped FX pair is worse than a dropped
+    # stock: it silently zeroes the currency effect for every holding in that
+    # currency, and USD alone is most of the fund.
+    frame = closing_prices(list(pairs.values()), start, end) if pairs else pd.DataFrame()
 
     out = pd.DataFrame(index=frame.index if not frame.empty else None)
     for cur, pair in pairs.items():
