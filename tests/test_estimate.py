@@ -50,6 +50,17 @@ def frames(alpha=(100.0, 110.0), beta=(50.0, 50.0), usdnok=(10.0, 10.0)):
     return prices, fx
 
 
+def test_estimate_carries_the_funds_own_currency():
+    """The report renders this instead of assuming every fund is in NOK."""
+    fund = make_fund(currency="USD")
+    snapshot = make_snapshot([("Beta", 100.0)])
+    prices, fx = frames(beta=(50.0, 51.0))
+
+    est = estimate_return(fund, snapshot, date(2026, 7, 30), prices, fx)
+
+    assert est.currency == "USD"
+
+
 def test_single_holding_local_return_only():
     """A NOK holding at 100 % weight passes its own return straight through."""
     fund = make_fund()
@@ -248,6 +259,39 @@ def test_fully_observed_day_reports_no_stale_weight():
 
     assert est.stale_weight_pct == 0.0
     assert not any("ingen kurs" in w for w in est.warnings)
+
+
+def test_carried_forward_fx_is_reported_not_treated_as_a_flat_currency_move():
+    """Same failure mode as stale prices, but for the FX rate: a forward-filled
+    currency rate must not silently look like a flat currency day."""
+    fund = make_fund()
+    snapshot = make_snapshot([("Alpha", 100.0)])
+    prices, fx = frames(alpha=(100.0, 105.0), usdnok=(10.0, 10.0))
+    fx_observed = pd.DataFrame({"USD": [True, False], "NOK": [True, True]},
+                               index=[DAY0, DAY1])
+
+    est = estimate_return(
+        fund, snapshot, date(2026, 7, 30), prices, fx, fx_observed=fx_observed
+    )
+
+    assert [c.name for c in est.contributions if c.fx_carried_forward] == ["Alpha"]
+    assert any("valutakurs som er videreført" in w for w in est.warnings)
+
+
+def test_stale_fx_rate_is_flagged():
+    """A currency pair Yahoo has not quoted in days must warn, same as a stale
+    stock price does - an exotic pair going quiet should not pass unnoticed."""
+    fund = make_fund()
+    snapshot = make_snapshot([("Alpha", 100.0)])
+    prices, fx = frames(alpha=(100.0, 105.0))
+    fx_staleness = pd.Series({"USD": 10, "NOK": 0})
+
+    est = estimate_return(
+        fund, snapshot, date(2026, 7, 30), prices, fx, fx_staleness=fx_staleness
+    )
+
+    assert next(c.stale_fx for c in est.contributions if c.currency == "USD")
+    assert any("Gammel valutakurs" in w for w in est.warnings)
 
 
 def test_align_reports_which_cells_were_carried_forward():

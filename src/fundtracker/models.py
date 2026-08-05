@@ -59,6 +59,9 @@ class Contribution:
     # True when this price was carried forward rather than quoted on the day,
     # which makes the holding look flat when we simply do not know yet.
     carried_forward: bool = False
+    # Same two signals as above, but for the FX rate rather than the price.
+    stale_fx: bool = False
+    fx_carried_forward: bool = False
 
 
 @dataclass
@@ -67,6 +70,7 @@ class Estimate:
 
     fund_id: str
     fund_name: str
+    currency: str
     date: date
     return_pct: float
     equity_return_pct: float

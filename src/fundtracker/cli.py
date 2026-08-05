@@ -175,8 +175,8 @@ def _price_context(fund, snapshot, target: date):
     raw_prices = price_source.closing_prices(tickers, start, target)
     raw_fx = price_source.fx_to_base(sorted(currencies), fund.currency, start, target)
     prices, staleness, observed = price_source.align(raw_prices)
-    fx, _, _ = price_source.align(raw_fx)
-    return prices, fx, staleness, observed
+    fx, fx_staleness, fx_observed = price_source.align(raw_fx)
+    return prices, fx, staleness, observed, fx_staleness, fx_observed
 
 
 def cmd_estimate(args) -> int:
@@ -188,18 +188,23 @@ def cmd_estimate(args) -> int:
         return 0
 
     snapshot = holdings_mod.load_holdings(fund)
-    prices, fx, staleness, observed = _price_context(fund, snapshot, target)
+    prices, fx, staleness, observed, fx_staleness, fx_observed = _price_context(
+        fund, snapshot, target
+    )
 
     if args.verbose:
         with pd.option_context("display.max_columns", None, "display.width", 200):
             print("\nSiste kursrader:\n", prices.tail(3), "\n")
             print("Siste valutarader:\n", fx.tail(3), "\n")
 
-    est = estimate_return(fund, snapshot, target, prices, fx, staleness, observed)
+    est = estimate_return(
+        fund, snapshot, target, prices, fx, staleness, observed, fx_staleness, fx_observed
+    )
 
     if args.latest and est.stale_weight_pct > args.max_stale:
         est = _latest_complete(
-            fund, snapshot, target, prices, fx, staleness, observed, args.max_stale
+            fund, snapshot, target, prices, fx, staleness, observed,
+            fx_staleness, fx_observed, args.max_stale,
         ) or est
 
     print(report.to_text(est))
@@ -263,9 +268,12 @@ def _explain_worst_day(fund, snapshot, as_of: date, span: int = 12) -> None:
           f"({daily[worst]:+.2f} %). Fordelt på beholdninger:")
     print()
 
-    prices, fx, staleness, observed = _price_context(fund, snapshot, worst.date())
+    prices, fx, staleness, observed, fx_staleness, fx_observed = _price_context(
+        fund, snapshot, worst.date()
+    )
     est = estimate_return(
-        fund, snapshot, worst.date(), prices, fx, staleness, observed
+        fund, snapshot, worst.date(), prices, fx, staleness, observed,
+        fx_staleness, fx_observed,
     )
     for c in sorted(est.contributions, key=lambda c: c.contribution_pct):
         print(f"  {c.name:<28} {c.ticker:<10} vekt {c.weight_pct:>5.2f} %"
@@ -315,7 +323,8 @@ def cmd_backtest(args) -> int:
 
 
 def _latest_complete(
-    fund, snapshot, target, prices, fx, staleness, observed, max_stale, back=7
+    fund, snapshot, target, prices, fx, staleness, observed,
+    fx_staleness, fx_observed, max_stale, back=7,
 ):
     """Walk back to the most recent day every market had actually closed.
 
@@ -326,7 +335,8 @@ def _latest_complete(
     for ts in reversed(candidates[-back - 1:-1]):
         try:
             candidate = estimate_return(
-                fund, snapshot, ts.date(), prices, fx, staleness, observed
+                fund, snapshot, ts.date(), prices, fx, staleness, observed,
+                fx_staleness, fx_observed,
             )
         except ValueError:
             continue

@@ -38,18 +38,22 @@ def estimate_return(
     fx: pd.DataFrame,
     staleness: Optional[pd.Series] = None,
     observed: Optional[pd.DataFrame] = None,
+    fx_staleness: Optional[pd.Series] = None,
+    fx_observed: Optional[pd.DataFrame] = None,
     hedged: Optional[bool] = None,
 ) -> Estimate:
     """Estimate ``fund``'s return for ``target``.
 
     ``prices`` and ``fx`` are date-indexed frames already forward-filled by
-    :func:`fundtracker.sources.prices.align`. ``observed`` is that function's
-    mask of which cells were real observations rather than carried forward; the
-    weight sitting behind carried-forward prices is reported on the result so
-    the caller can refuse to publish a half-stale number.
+    :func:`fundtracker.sources.prices.align`. ``observed`` and ``fx_observed``
+    are that function's masks of which cells were real observations rather
+    than carried forward; the weight sitting behind carried-forward prices or
+    FX rates is reported on the result so the caller can refuse to publish a
+    half-stale number.
     """
     warnings: list[str] = []
     staleness = staleness if staleness is not None else pd.Series(dtype="int64")
+    fx_staleness = fx_staleness if fx_staleness is not None else pd.Series(dtype="int64")
     # A hedged fund neutralises currency moves, so its NAV tracks the holdings'
     # local-currency returns. Getting this wrong biases every single day in the
     # same direction, which is exactly what it looks like.
@@ -92,6 +96,8 @@ def estimate_return(
                 contribution_pct=0.0,  # filled in below, once weights are normalised
                 stale_price=int(staleness.get(mapping.ticker, 0)) > STALE_PRICE_WARN_DAYS,
                 carried_forward=not _was_observed(observed, curr_idx, mapping.ticker),
+                stale_fx=int(fx_staleness.get(mapping.currency, 0)) > STALE_PRICE_WARN_DAYS,
+                fx_carried_forward=not _was_observed(fx_observed, curr_idx, mapping.currency),
             )
         )
 
@@ -121,6 +127,7 @@ def estimate_return(
     return Estimate(
         fund_id=fund.id,
         fund_name=fund.name,
+        currency=fund.currency,
         date=target,
         return_pct=return_pct,
         equity_return_pct=equity_return * 100.0,
@@ -269,3 +276,15 @@ def _collect_warnings(
     stale = [c.ticker for c in priced if c.stale_price]
     if stale:
         warnings.append("Gammel kurs (mistenkelig ticker?): " + ", ".join(sorted(stale)))
+
+    fx_carried_weight = sum(c.weight_pct for c in priced if c.fx_carried_forward)
+    if fx_carried_weight > 0:
+        fx_names = sorted({c.currency for c in priced if c.fx_carried_forward})
+        warnings.append(
+            f"{_no(fx_carried_weight)} % av fondet prises med en valutakurs som er "
+            f"videreført fra en tidligere dag, så valutabidraget vises som 0,0 % uten "
+            f"at det er sant. Gjelder: {', '.join(fx_names)}"
+        )
+    stale_fx = sorted({c.currency for c in priced if c.stale_fx})
+    if stale_fx:
+        warnings.append("Gammel valutakurs (mistenkelig valutapar?): " + ", ".join(stale_fx))

@@ -132,7 +132,7 @@ def estimate_series(
     raw_prices = price_source.closing_prices(tickers, start, end)
     raw_fx = price_source.fx_to_base(sorted(currencies), fund.currency, start, end)
     prices, staleness, observed = price_source.align(raw_prices)
-    fx, _, _ = price_source.align(raw_fx)
+    fx, fx_staleness, fx_observed = price_source.align(raw_fx)
 
     estimates = {}
     for ts in prices.index:
@@ -140,7 +140,8 @@ def estimate_series(
             continue
         try:
             est = estimate_return(
-                fund, snapshot, ts.date(), prices, fx, staleness, observed, hedged
+                fund, snapshot, ts.date(), prices, fx, staleness, observed,
+                fx_staleness, fx_observed, hedged,
             )
         except ValueError:
             continue

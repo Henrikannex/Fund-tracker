@@ -54,7 +54,7 @@ def to_text(est: Estimate) -> str:
         f"Estimert avkastning {_no_date(est.date)}: {_pct(est.return_pct)}",
         "",
         "Sammensetning:",
-        _summary_line("Aksjeavkastning i NOK", _pct(est.equity_return_pct)),
+        _summary_line(f"Aksjeavkastning i {est.currency}", _pct(est.equity_return_pct)),
         _summary_line("Herav valutaeffekt", _pct(est.fx_contribution_pct)),
         _summary_line("Forvaltningshonorar", _pct(-est.fee_drag_pct, 4)),
         "",
@@ -176,7 +176,7 @@ def to_html(est: Estimate) -> str:
   <div style="font-size:14px;color:#666">estimert for {_no_date(est.date)}</div>
 
   <table style="margin-top:24px;font-size:14px;border-collapse:collapse">
-    <tr><td style="padding:3px 20px 3px 0;color:#666">Aksjeavkastning i NOK</td>
+    <tr><td style="padding:3px 20px 3px 0;color:#666">Aksjeavkastning i {escape(est.currency)}</td>
         <td style="text-align:right">{_pct(est.equity_return_pct)}</td></tr>
     <tr><td style="padding:3px 20px 3px 0;color:#666">Herav valutaeffekt</td>
         <td style="text-align:right;color:#666">{_pct(est.fx_contribution_pct)}</td></tr>
