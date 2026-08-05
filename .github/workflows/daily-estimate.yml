@@ -66,7 +66,8 @@ jobs:
           python -m fundtracker.cli estimate \
             "${{ inputs.fund || 'dnb-teknologi-a' }}" \
             ${{ inputs.date && format('--date {0}', inputs.date) || '' }} \
-            --save --skip-if-logged \
+            --save \
+            ${{ github.event_name == 'schedule' && '--skip-if-logged' || '' }} \
             ${{ inputs.latest && '--latest' || '' }} \
             ${{ (github.event_name == 'schedule' || inputs.send_email) && '--email' || '' }}
           status=$?
