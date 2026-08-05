@@ -66,15 +66,21 @@ def _download(tickers: list[str], start: date, end: date) -> pd.DataFrame:
 def closing_prices(tickers: list[str], start: date, end: date) -> pd.DataFrame:
     """Closing prices in each ticker's own listing currency.
 
-    Yahoo drops tickers from batch downloads now and then — sometimes a single
-    name, sometimes a whole chunk of twenty. Nothing errors: yfinance fails to
-    look up the ticker's timezone, gives up on it, and the column simply comes
-    back empty for the most recent day. That reads exactly like a market that
-    was closed, so the freshness gate stops the run and no mail goes out.
+    Yahoo drops tickers from batch downloads now and then — Cisco vanished from
+    one run and came back on the next. Nothing errors: yfinance fails to look up
+    the ticker's timezone, gives up on it, and the column comes back empty for
+    the most recent day. That reads exactly like a market that was closed, so
+    the freshness gate stops the run and no mail goes out over a hiccup.
 
-    The lookups fail because Yahoo throttled them, not because the ticker is
-    gone, so anything missing its last row is fetched again one at a time with
-    a pause in between before we accept the gap as real.
+    Anything missing its last row is therefore fetched again one at a time, with
+    a pause in between so the retry does not walk into the same throttling.
+
+    This does not rescue every gap, and it is worth knowing which. On the
+    morning of 5 August all twenty European tickers were missing their 4 August
+    close, and the retries changed nothing: Yahoo had built the 4 August bar and
+    left the close null. Asking again, asking with a wider window, and asking
+    the per-ticker history endpoint all returned the same null. When the source
+    has no number, the gate is the thing that saves us, not this.
     """
     wanted = sorted(set(tickers))
     frame = _download(wanted, start, end)
