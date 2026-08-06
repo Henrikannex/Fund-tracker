@@ -45,6 +45,15 @@ STOOQ_SUFFIX_CANDIDATES: dict[str, list[str]] = {
     ".LS": [".pt"],
 }
 
+# Stooq's CSV export has been seen to block the default python-requests
+# user agent. A plain browser-shaped header is enough to avoid that.
+STOOQ_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    ),
+}
+
 
 def _download(tickers: list[str], start: date, end: date) -> pd.DataFrame:
     """Return a date-indexed frame of closes, one column per ticker.
@@ -164,16 +173,22 @@ def _download_stooq_symbol(symbol: str, start: date, end: date) -> pd.DataFrame:
     """
     url = f"https://stooq.com/q/d/l/?s={symbol}&d1={start:%Y%m%d}&d2={end:%Y%m%d}&i=d"
     try:
-        response = requests.get(url, timeout=15)
+        response = requests.get(url, timeout=15, headers=STOOQ_HEADERS)
     except requests.RequestException as exc:
-        log.debug("Stooq svarte ikke for %s: %s", symbol, exc)
+        log.info("Stooq svarte ikke for %s: %s", symbol, exc)
         return pd.DataFrame()
     if response.status_code != 200 or not response.text.startswith("Date,"):
+        # Logged at INFO, not DEBUG: this is a best-effort fallback with an
+        # unverified suffix table (see STOOQ_SUFFIX_CANDIDATES), so seeing
+        # *why* a symbol did not resolve is how the table gets corrected
+        # rather than staying a permanent silent no-op.
+        log.info("Stooq ga ikke data for %s: HTTP %s, %r",
+                  symbol, response.status_code, response.text[:120])
         return pd.DataFrame()
     try:
         parsed = pd.read_csv(io.StringIO(response.text), parse_dates=["Date"])
     except Exception as exc:  # noqa: BLE001 - a malformed export must not crash the run
-        log.debug("Kunne ikke lese Stooq-CSV for %s: %s", symbol, exc)
+        log.info("Kunne ikke lese Stooq-CSV for %s: %s", symbol, exc)
         return pd.DataFrame()
     if "Close" not in parsed.columns or parsed.empty:
         return pd.DataFrame()
