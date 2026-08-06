@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import io
 import logging
 import time
 from datetime import date, timedelta
 
 import pandas as pd
+import requests
 
 log = logging.getLogger(__name__)
 
@@ -18,6 +20,30 @@ LOOKBACK_PAD_DAYS = 10
 # a batch because Yahoo throttled the lookup, so hammering it again the same
 # second reproduces the failure instead of fixing it.
 RETRY_PAUSE_SECONDS = 2.0
+
+# Pause between per-ticker Stooq lookups, same reasoning as RETRY_PAUSE_SECONDS.
+STOOQ_PAUSE_SECONDS = 1.0
+
+# Yahoo's exchange suffix -> candidate Stooq suffixes to try, in that order.
+# Stooq's suffix scheme is undocumented outside their own site and only partly
+# overlaps Yahoo's, so this is a short list of educated guesses per exchange
+# rather than a verified mapping. A wrong guess costs nothing: it only "wins"
+# by returning a real row for the exact date we asked about, so it cannot
+# silently substitute the wrong instrument's price the way a bad ticker
+# override could - it just stays missing, same as with no fallback at all.
+STOOQ_SUFFIX_CANDIDATES: dict[str, list[str]] = {
+    "": [".us"],       # bare Yahoo tickers are US-listed
+    ".DE": [".de"],
+    ".PA": [".fr"],
+    ".AS": [".nl"],
+    ".ST": [".st"],
+    ".OL": [".ol"],
+    ".HE": [".fi"],
+    ".SW": [".sw"],
+    ".L": [".uk"],
+    ".IL": [".uk"],    # London-quoted GDRs
+    ".LS": [".pt"],
+}
 
 
 def _download(tickers: list[str], start: date, end: date) -> pd.DataFrame:
@@ -106,9 +132,73 @@ def closing_prices(tickers: list[str], start: date, end: date) -> pd.DataFrame:
 
     still = [t for t in missing if pd.isna(frame.at[latest, t])]
     if still:
+        rescued = _stooq_fill(still, start, end, latest)
+        for ticker, value in rescued.items():
+            frame.at[latest, ticker] = value
+        still = [t for t in still if t not in rescued]
+        if rescued:
+            log.info("Stooq reddet kurs for %s på %s", ", ".join(rescued), latest.date())
+
+    if still:
         log.warning("Fortsatt uten kurs for %s etter nytt forsøk: %s",
                     latest.date(), ", ".join(still))
     return frame
+
+
+def _stooq_candidates(ticker: str) -> list[str]:
+    """Yahoo ticker -> plausible Stooq symbols, in the order to try them."""
+    if "." not in ticker:
+        return [f"{ticker}.us".lower()]
+    root, _, suffix = ticker.rpartition(".")
+    return [f"{root}{stooq_suffix}".lower()
+            for stooq_suffix in STOOQ_SUFFIX_CANDIDATES.get(f".{suffix}".upper(), [])]
+
+
+def _download_stooq_symbol(symbol: str, start: date, end: date) -> pd.DataFrame:
+    """One symbol's daily closes from Stooq's CSV export, or an empty frame.
+
+    Unlike Yahoo's auto_adjust=True prices, these are plain closes - not
+    dividend-adjusted. That only matters on a holding's actual ex-dividend
+    day, and only for a ticker Yahoo already failed to price; a slightly
+    imperfect number there beats none at all.
+    """
+    url = f"https://stooq.com/q/d/l/?s={symbol}&d1={start:%Y%m%d}&d2={end:%Y%m%d}&i=d"
+    try:
+        response = requests.get(url, timeout=15)
+    except requests.RequestException as exc:
+        log.debug("Stooq svarte ikke for %s: %s", symbol, exc)
+        return pd.DataFrame()
+    if response.status_code != 200 or not response.text.startswith("Date,"):
+        return pd.DataFrame()
+    try:
+        parsed = pd.read_csv(io.StringIO(response.text), parse_dates=["Date"])
+    except Exception as exc:  # noqa: BLE001 - a malformed export must not crash the run
+        log.debug("Kunne ikke lese Stooq-CSV for %s: %s", symbol, exc)
+        return pd.DataFrame()
+    if "Close" not in parsed.columns or parsed.empty:
+        return pd.DataFrame()
+    parsed = parsed.set_index("Date")[["Close"]]
+    parsed.index = parsed.index.normalize()
+    return parsed
+
+
+def _stooq_fill(
+    missing: list[str], start: date, end: date, target_date: pd.Timestamp
+) -> dict[str, float]:
+    """Best-effort Stooq closes, for tickers Yahoo could not provide at all."""
+    found: dict[str, float] = {}
+    for ticker in missing:
+        for symbol in _stooq_candidates(ticker):
+            time.sleep(STOOQ_PAUSE_SECONDS)
+            frame = _download_stooq_symbol(symbol, start, end)
+            if frame.empty or target_date not in frame.index:
+                continue
+            value = frame.at[target_date, "Close"]
+            if pd.isna(value):
+                continue
+            found[ticker] = float(value)
+            break
+    return found
 
 
 def fx_to_base(currencies: list[str], base: str, start: date, end: date) -> pd.DataFrame:
