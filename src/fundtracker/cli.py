@@ -79,6 +79,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_pp.add_argument("url")
 
+    p_pip = sub.add_parser(
+        "probe-instrument-price",
+        help="Prøv å slå opp instrument-id og hente pris fra Nordnets API",
+    )
+    p_pip.add_argument("ticker")
+    p_pip.add_argument("market")
+
     p_val = sub.add_parser(
         "validate", help="Mål modellen mot fondets publiserte periodeavkastning"
     )
@@ -109,6 +116,7 @@ def main(argv: list[str] | None = None) -> int:
         "resolve": cmd_resolve,
         "probe": cmd_probe,
         "probe-price": cmd_probe_price,
+        "probe-instrument-price": cmd_probe_instrument_price,
         "funds": cmd_funds,
     }
     return handlers[args.command](args)
@@ -176,6 +184,11 @@ def cmd_probe(args) -> int:
 
 def cmd_probe_price(args) -> int:
     print(holdings_mod.probe_nordnet_price_page(args.url))
+    return 0
+
+
+def cmd_probe_instrument_price(args) -> int:
+    print(holdings_mod.probe_nordnet_instrument_price(args.ticker, args.market))
     return 0
 
 

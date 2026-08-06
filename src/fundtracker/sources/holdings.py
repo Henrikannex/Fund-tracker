@@ -327,6 +327,101 @@ def probe_nordnet_price_page(url: str) -> str:
     return "\n".join(lines)
 
 
+# Separator between market and ticker is not documented - probe_nordnet_price_page
+# only found the endpoint's shape, not its input format, so several plausible
+# shapes are tried and each result reported rather than assumed.
+_MARKET_ID_TEMPLATES = ["{market}:{ticker}", "{market}.{ticker}",
+                         "{ticker}:{market}", "{ticker}.{market}", "{market}/{ticker}"]
+
+# The price endpoint's own shape is confirmed from the page; only the "does
+# it need a login" question remains, so both plausible instrument routes are
+# tried once an id is in hand.
+_PRICE_PATH_TEMPLATES = ["/api/2/instruments/price/{id}", "/api/2/instruments/{id}"]
+
+
+def probe_nordnet_instrument_price(ticker: str, market: str) -> str:
+    """Two-step probe: resolve ticker+market to an instrument id, then price it.
+
+    Built directly from what probe_nordnet_price_page found embedded in a real
+    Nordnet stock page - a lookup endpoint that should turn a market+ticker
+    into an instrument id, and a price endpoint keyed by that id. Neither call
+    has been confirmed to work without a logged-in session (the fund-holdings
+    NORDNET_ENDPOINTS above never were either), so this reports exactly what
+    each candidate returns instead of assuming success.
+    """
+    session = _session()
+    lines: list[str] = []
+    instrument_id: Optional[str] = None
+
+    for template in _MARKET_ID_TEMPLATES:
+        candidate = template.format(market=market, ticker=ticker)
+        url = f"https://www.nordnet.no/api/2/instruments/lookup/market_id_identifier/{candidate}"
+        try:
+            response = session.get(url, timeout=TIMEOUT)
+        except requests.RequestException as exc:
+            lines.append(f"{url}: FEIL - {exc}")
+            continue
+        summary = f"{url}: HTTP {response.status_code}, {len(response.content)} bytes"
+        if response.status_code == 200:
+            try:
+                payload = response.json()
+            except ValueError:
+                summary += f", ikke JSON. Utdrag: {response.text[:150]!r}"
+            else:
+                found = _find_any_id(payload)
+                if found:
+                    summary += f", instrument_id {found}"
+                    instrument_id = instrument_id or found
+                else:
+                    summary += f", JSON uten gjenkjennelig id: {str(payload)[:150]!r}"
+        lines.append(summary)
+
+    if not instrument_id:
+        lines.append("\nIngen kandidat ga en instrument-id. Prøver ikke pris-endepunktet.")
+        return "\n".join(lines)
+
+    lines.append(f"\nFant instrument_id {instrument_id}. Prøver pris-endepunktene:")
+    for path_template in _PRICE_PATH_TEMPLATES:
+        url = f"https://www.nordnet.no{path_template.format(id=instrument_id)}"
+        try:
+            response = session.get(url, timeout=TIMEOUT)
+        except requests.RequestException as exc:
+            lines.append(f"{url}: FEIL - {exc}")
+            continue
+        summary = f"{url}: HTTP {response.status_code}, {len(response.content)} bytes"
+        if response.status_code == 200:
+            try:
+                payload = response.json()
+            except ValueError:
+                summary += f", ikke JSON. Utdrag: {response.text[:200]!r}"
+            else:
+                summary += f", JSON: {str(payload)[:300]!r}"
+        else:
+            summary += f", utdrag: {response.text[:200]!r}"
+        lines.append(summary)
+
+    return "\n".join(lines)
+
+
+def _find_any_id(node: Any) -> Optional[str]:
+    """Like _find_instrument_id, but for payloads with no ISIN to match against."""
+    if isinstance(node, dict):
+        for key in _ID_KEYS:
+            value = node.get(key)
+            if isinstance(value, (int, str)) and str(value).strip():
+                return str(value)
+        for child in node.values():
+            found = _find_any_id(child)
+            if found:
+                return found
+    elif isinstance(node, list):
+        for child in node:
+            found = _find_any_id(child)
+            if found:
+                return found
+    return None
+
+
 def _session() -> requests.Session:
     session = requests.Session()
     session.headers.update(
