@@ -166,9 +166,7 @@ tickers:
   # Nordnet-flagg å bekrefte mot ennå.
   Nintendo Co Ltd:                         {ticker: "7974.T",  currency: JPY}
 
-  # TDC AS er ikke kartlagt: vekten er 0,00 % i rapporten, og det danske
-  # TDC A/S ble tatt av børs i 2018, så det er uklart hvilket selskap DNB
-  # mener. "resolve" rapporterer navnet i stedet for å gjette en ticker.
+  TDC AS:                                   {ticker: TDC,       currency: USD}
 
 # Fasit å måle modellen mot, siden ingen NAV-tidsserie er tilgjengelig.
 # Tallene står under kursgrafen på Nordnets fondsside, alle per samme dato.
