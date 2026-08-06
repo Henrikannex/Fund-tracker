@@ -23,7 +23,7 @@ on:
         description: Hva skal kjøres
         type: choice
         default: alt
-        options: [alt, probe, resolve, estimate, validate, backtest, probe-price, probe-instrument-price]
+        options: [alt, probe, resolve, estimate, validate, backtest, probe-price, probe-instrument-price, probe-yahoo-price]
       backtest_days:
         description: Antall handelsdager i backtesten
         default: "250"
@@ -94,3 +94,14 @@ jobs:
         if: env.TASK == 'probe-instrument-price'
         continue-on-error: true
         run: python -m fundtracker.cli probe-instrument-price "$TICKER" "$MARKET"
+
+      - name: Yahoo-kursside - hva avslører den om prisen
+        # Sjekker både $TICKER (default MSFT, som virker fint i dag) og
+        # SAP.DE (en av de europeiske postene Yahoo mangler dagskurs for),
+        # for å se om nettsiden vet noe nedlastings-APIet ikke gjør.
+        if: env.TASK == 'probe-yahoo-price'
+        continue-on-error: true
+        run: |
+          python -m fundtracker.cli probe-yahoo-price "$TICKER"
+          echo
+          python -m fundtracker.cli probe-yahoo-price "SAP.DE"

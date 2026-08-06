@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import logging
+import re
 import time
 from datetime import date, timedelta
 
@@ -277,3 +278,49 @@ def align(
         lambda d: (latest - d).days if pd.notna(d) else 10**6
     ).astype("int64")
     return filled, staleness, observed
+
+
+# Same fields yfinance itself looks for in Yahoo's own JSON, reused here so a
+# hit means "this is the same kind of number our pipeline already trusts."
+YAHOO_QUOTE_PRICE_FIELDS = (
+    "regularMarketPrice", "regularMarketPreviousClose",
+    "previousClose", "regularMarketTime",
+)
+
+
+def probe_yahoo_quote_page(ticker: str) -> str:
+    """Fetch a Yahoo Finance quote page and report what price data it embeds.
+
+    yfinance's own download endpoint sometimes has a null close for the most
+    recent day on European/Nordic tickers even long after that market shut
+    (see closing_prices' docstring - it happened on both 4 and 5 August for
+    the same ~20 names). The public quote page might be fed by a faster or
+    more current pipeline for at least a live/previous-close number, so this
+    checks what is actually embedded there rather than assuming either way -
+    same reasoning as probe_nordnet_price_page for a different source.
+    """
+    url = f"https://finance.yahoo.com/quote/{ticker}/"
+    try:
+        response = requests.get(url, timeout=15, headers=STOOQ_HEADERS)
+    except requests.RequestException as exc:
+        return f"{url}: FEIL - {exc}"
+
+    body = response.text
+    lines = [f"{url}: HTTP {response.status_code}, {len(response.content)} bytes"]
+    if response.status_code != 200:
+        lines.append(f"Utdrag: {body[:300]!r}")
+        return "\n".join(lines)
+
+    found_any = False
+    for key in YAHOO_QUOTE_PRICE_FIELDS:
+        hit = re.search(rf'"{key}"\s*:\s*(\{{[^}}]*\}}|"[^"]*"|[0-9.eE+-]+)', body)
+        if hit:
+            found_any = True
+            lines.append(f"  {key}: {hit.group(1)[:150]}")
+
+    if not found_any:
+        lines.append("Ingen kjente pris-felt funnet i rå HTML - trolig lastes "
+                      "prisen inn separat (XHR) etter at siden vises, ikke "
+                      "server-rendret inn i denne responsen.")
+
+    return "\n".join(lines)

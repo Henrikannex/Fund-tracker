@@ -86,6 +86,11 @@ def main(argv: list[str] | None = None) -> int:
     p_pip.add_argument("ticker")
     p_pip.add_argument("market")
 
+    p_pyq = sub.add_parser(
+        "probe-yahoo-price", help="Se hva en Yahoo Finance-kursside faktisk avslører"
+    )
+    p_pyq.add_argument("ticker")
+
     p_val = sub.add_parser(
         "validate", help="Mål modellen mot fondets publiserte periodeavkastning"
     )
@@ -117,6 +122,7 @@ def main(argv: list[str] | None = None) -> int:
         "probe": cmd_probe,
         "probe-price": cmd_probe_price,
         "probe-instrument-price": cmd_probe_instrument_price,
+        "probe-yahoo-price": cmd_probe_yahoo_price,
         "funds": cmd_funds,
     }
     return handlers[args.command](args)
@@ -189,6 +195,11 @@ def cmd_probe_price(args) -> int:
 
 def cmd_probe_instrument_price(args) -> int:
     print(holdings_mod.probe_nordnet_instrument_price(args.ticker, args.market))
+    return 0
+
+
+def cmd_probe_yahoo_price(args) -> int:
+    print(price_source.probe_yahoo_quote_page(args.ticker))
     return 0
 
 
