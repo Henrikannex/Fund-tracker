@@ -259,6 +259,15 @@ def _find_instrument_id(node: Any, isin: str) -> Optional[str]:
     return None
 
 
+# Only these are worth printing out of the hundreds of /api/ paths a page
+# like this embeds - the rest is Nordnet's whole-app typed API client
+# (account opening, pensions, messages...), not anything about this stock.
+PRICE_PATH_KEYWORDS = (
+    "chart", "quote", "price", "instrument", "history",
+    "historical", "graph", "trade", "market", "tick",
+)
+
+
 def probe_nordnet_price_page(url: str) -> str:
     """Fetch a Nordnet stock page and report what it reveals about a price API.
 
@@ -267,6 +276,12 @@ def probe_nordnet_price_page(url: str) -> str:
     only way to find that API's shape is to look at what a real page actually
     contains - embedded JSON, an instrument id, any /api/ path literal in the
     HTML - rather than guess at URLs the way the Stooq fallback had to.
+
+    The page bundles its whole-app typed API client (account opening,
+    pensions, messages...) alongside anything instrument-specific, so the raw
+    path list is filtered down to what could plausibly serve a price chart;
+    an unfiltered dump both buries the signal and risks tripping CI log
+    truncation on an output that large.
     """
     session = _session()
     session.headers["Accept"] = "text/html,application/xhtml+xml"
@@ -282,20 +297,30 @@ def probe_nordnet_price_page(url: str) -> str:
         lines.append(f"Utdrag: {body[:300]!r}")
         return "\n".join(lines)
 
-    api_paths = sorted(set(re.findall(r'"(/api/[^"\s]+)"', body)))
-    if api_paths:
-        lines.append(f"Fant {len(api_paths)} /api/-stier i siden:")
-        lines.extend(f"  {p}" for p in api_paths[:30])
-    else:
-        lines.append("Ingen /api/-stier funnet i rå HTML.")
+    # Trailing backslash is a JSON-in-JSON escaping artefact (an embedded,
+    # double-encoded blob), not part of the real path - stripped for clarity.
+    all_paths = {m.rstrip("\\") for m in re.findall(r'"(/api/[^"\s]+)"', body)}
+    relevant = sorted(p for p in all_paths if any(k in p.lower() for k in PRICE_PATH_KEYWORDS))
+    lines.append(f"Fant {len(all_paths)} /api/-stier totalt, {len(relevant)} ser "
+                 f"pris/instrument-relevante ut:")
+    lines.extend(f"  {p}" for p in relevant[:25])
 
-    ids = sorted(set(re.findall(r'"identifier"\s*:\s*"([^"]+)"', body)))
+    ids = sorted(set(re.findall(r'"identifier"\s*:\s*"([^"]+)"', body)))[:10]
     if ids:
-        lines.append(f"Fant identifier-felt: {', '.join(ids[:10])}")
+        lines.append(f"Fant identifier-felt: {', '.join(ids)}")
 
-    if "__NEXT_DATA__" in body:
-        lines.append("Siden har __NEXT_DATA__ (Next.js) - dataene kan ligge i den JSON-blokken.")
-    if len(body) < 5000:
+    next_data = re.search(
+        r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', body, re.DOTALL
+    )
+    if next_data:
+        blob = next_data.group(1)
+        lines.append(f"__NEXT_DATA__ funnet, {len(blob)} tegn.")
+        for keyword in ("instrument", "identifier", "symbol", "chartData"):
+            hit = re.search(rf'"[^"]*{keyword}[^"]*"\s*:\s*("[^"]{{1,80}}"|\{{|\[)', blob, re.IGNORECASE)
+            if hit:
+                start = hit.start()
+                lines.append(f"  rundt {keyword!r}: {blob[start:start + 150]!r}")
+    elif len(body) < 5000:
         lines.append(f"Siden er liten ({len(body)} tegn) - trolig et JS-skall uten "
                       f"server-rendert data. Utdrag: {body[:300]!r}")
 
