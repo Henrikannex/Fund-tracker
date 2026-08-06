@@ -16,6 +16,7 @@ from __future__ import annotations
 import csv
 import io
 import logging
+import re
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Iterable, Optional
@@ -256,6 +257,49 @@ def _find_instrument_id(node: Any, isin: str) -> Optional[str]:
             if found:
                 return found
     return None
+
+
+def probe_nordnet_price_page(url: str) -> str:
+    """Fetch a Nordnet stock page and report what it reveals about a price API.
+
+    Purely investigative, same spirit as probe_instrument_lookup: Nordnet's
+    charts are drawn by front-end JS calling an undocumented API, and the
+    only way to find that API's shape is to look at what a real page actually
+    contains - embedded JSON, an instrument id, any /api/ path literal in the
+    HTML - rather than guess at URLs the way the Stooq fallback had to.
+    """
+    session = _session()
+    session.headers["Accept"] = "text/html,application/xhtml+xml"
+    try:
+        response = session.get(url, timeout=TIMEOUT)
+    except requests.RequestException as exc:
+        return f"{url}: FEIL - {exc}"
+
+    body = response.text
+    lines = [f"{url}: HTTP {response.status_code}, {len(response.content)} bytes"]
+
+    if response.status_code != 200:
+        lines.append(f"Utdrag: {body[:300]!r}")
+        return "\n".join(lines)
+
+    api_paths = sorted(set(re.findall(r'"(/api/[^"\s]+)"', body)))
+    if api_paths:
+        lines.append(f"Fant {len(api_paths)} /api/-stier i siden:")
+        lines.extend(f"  {p}" for p in api_paths[:30])
+    else:
+        lines.append("Ingen /api/-stier funnet i rå HTML.")
+
+    ids = sorted(set(re.findall(r'"identifier"\s*:\s*"([^"]+)"', body)))
+    if ids:
+        lines.append(f"Fant identifier-felt: {', '.join(ids[:10])}")
+
+    if "__NEXT_DATA__" in body:
+        lines.append("Siden har __NEXT_DATA__ (Next.js) - dataene kan ligge i den JSON-blokken.")
+    if len(body) < 5000:
+        lines.append(f"Siden er liten ({len(body)} tegn) - trolig et JS-skall uten "
+                      f"server-rendert data. Utdrag: {body[:300]!r}")
+
+    return "\n".join(lines)
 
 
 def _session() -> requests.Session:

@@ -74,6 +74,11 @@ def main(argv: list[str] | None = None) -> int:
     p_probe = sub.add_parser("probe", help="Test hvilke Nordnet-endepunkter som svarer")
     p_probe.add_argument("fund")
 
+    p_pp = sub.add_parser(
+        "probe-price", help="Se hva en Nordnet-aksjeside avslører om en pris-API"
+    )
+    p_pp.add_argument("url")
+
     p_val = sub.add_parser(
         "validate", help="Mål modellen mot fondets publiserte periodeavkastning"
     )
@@ -103,6 +108,7 @@ def main(argv: list[str] | None = None) -> int:
         "snapshot": cmd_snapshot,
         "resolve": cmd_resolve,
         "probe": cmd_probe,
+        "probe-price": cmd_probe_price,
         "funds": cmd_funds,
     }
     return handlers[args.command](args)
@@ -165,6 +171,11 @@ def cmd_probe(args) -> int:
             "\nIngen kilde ga beholdninger. Den manuelle CSV-fila brukes videre.",
             file=sys.stderr,
         )
+    return 0
+
+
+def cmd_probe_price(args) -> int:
+    print(holdings_mod.probe_nordnet_price_page(args.url))
     return 0
 
 

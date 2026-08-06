@@ -23,10 +23,13 @@ on:
         description: Hva skal kjøres
         type: choice
         default: alt
-        options: [alt, probe, resolve, estimate, validate, backtest]
+        options: [alt, probe, resolve, estimate, validate, backtest, probe-price]
       backtest_days:
         description: Antall handelsdager i backtesten
         default: "250"
+      url:
+        description: Nordnet-aksjeside å inspisere (kun for probe-price)
+        default: ""
 
 jobs:
   run:
@@ -37,6 +40,7 @@ jobs:
       FUND: ${{ inputs.fund || 'dnb-teknologi-a' }}
       TASK: ${{ inputs.task || 'alt' }}
       BACKTEST_DAYS: ${{ inputs.backtest_days || '250' }}
+      URL: ${{ inputs.url || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -71,3 +75,9 @@ jobs:
         if: env.TASK == 'alt' || env.TASK == 'backtest'
         continue-on-error: true
         run: python -m fundtracker.cli backtest "$FUND" --days "$BACKTEST_DAYS"
+
+      - name: Nordnet-aksjeside - hva avslører den om en pris-API
+        # Ikke del av "alt": trenger en URL, og er research, ikke drift.
+        if: env.TASK == 'probe-price'
+        continue-on-error: true
+        run: python -m fundtracker.cli probe-price "$URL"
