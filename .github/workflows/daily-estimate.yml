@@ -9,6 +9,21 @@ on:
     # dagens estimat allerede er logget, så vi slipper datomatematikk.
     - cron: "15 20 * * 1-5"
     - cron: "15 21 * * 1-5"
+    # Retry-vindu: hvert 30. minutt til 23:45 UTC hvis kursene fortsatt mangler
+    # (exit 3 under). Yahoo har hatt hele batcher med europeiske/nordiske
+    # sluttkurser stående som null i flere timer, lenge etter at børsene
+    # stengte - se docstringen i closing_prices(). --skip-if-logged gjør at
+    # kjøringen som til slutt lykkes er den eneste som faktisk sender noe;
+    # resten er billige nei-operasjoner.
+    #
+    # Vinduet stopper før midnatt UTC med vilje: --date er ikke satt her, så
+    # estimatet gjelder alltid date.today() på kjøretidspunktet - fortsetter
+    # forsøkene forbi midnatt, retter de seg mot feil dag uten å si fra. Varer
+    # et utfall lenger enn det, må dagen hentes på nytt for hånd (workflow_dispatch
+    # med --date).
+    - cron: "45 20 * * 1-5"
+    - cron: "45 21 * * 1-5"
+    - cron: "15,45 22-23 * * 1-5"
   workflow_dispatch:
     inputs:
       fund:

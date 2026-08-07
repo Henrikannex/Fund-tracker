@@ -23,10 +23,19 @@ on:
         description: Hva skal kjøres
         type: choice
         default: alt
-        options: [alt, probe, resolve, estimate, validate, backtest]
+        options: [alt, probe, resolve, estimate, validate, backtest, probe-price, probe-instrument-price, probe-yahoo-price]
       backtest_days:
         description: Antall handelsdager i backtesten
         default: "250"
+      url:
+        description: Nordnet-aksjeside å inspisere (kun for probe-price)
+        default: ""
+      ticker:
+        description: Ticker (kun for probe-instrument-price)
+        default: "MSFT"
+      market:
+        description: Markedskode (kun for probe-instrument-price)
+        default: "XNAS"
 
 jobs:
   run:
@@ -37,6 +46,9 @@ jobs:
       FUND: ${{ inputs.fund || 'dnb-teknologi-a' }}
       TASK: ${{ inputs.task || 'alt' }}
       BACKTEST_DAYS: ${{ inputs.backtest_days || '250' }}
+      URL: ${{ inputs.url || '' }}
+      TICKER: ${{ inputs.ticker || 'MSFT' }}
+      MARKET: ${{ inputs.market || 'XNAS' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -71,3 +83,25 @@ jobs:
         if: env.TASK == 'alt' || env.TASK == 'backtest'
         continue-on-error: true
         run: python -m fundtracker.cli backtest "$FUND" --days "$BACKTEST_DAYS"
+
+      - name: Nordnet-aksjeside - hva avslører den om en pris-API
+        # Ikke del av "alt": trenger en URL, og er research, ikke drift.
+        if: env.TASK == 'probe-price'
+        continue-on-error: true
+        run: python -m fundtracker.cli probe-price "$URL"
+
+      - name: Nordnet - slå opp instrument-id og prøv å hente pris
+        if: env.TASK == 'probe-instrument-price'
+        continue-on-error: true
+        run: python -m fundtracker.cli probe-instrument-price "$TICKER" "$MARKET"
+
+      - name: Yahoo-kursside - hva avslører den om prisen
+        # Sjekker både $TICKER (default MSFT, som virker fint i dag) og
+        # SAP.DE (en av de europeiske postene Yahoo mangler dagskurs for),
+        # for å se om nettsiden vet noe nedlastings-APIet ikke gjør.
+        if: env.TASK == 'probe-yahoo-price'
+        continue-on-error: true
+        run: |
+          python -m fundtracker.cli probe-yahoo-price "$TICKER"
+          echo
+          python -m fundtracker.cli probe-yahoo-price "SAP.DE"

@@ -16,6 +16,7 @@ from __future__ import annotations
 import csv
 import io
 import logging
+import re
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Iterable, Optional
@@ -253,6 +254,169 @@ def _find_instrument_id(node: Any, isin: str) -> Optional[str]:
     elif isinstance(node, list):
         for child in node:
             found = _find_instrument_id(child, isin)
+            if found:
+                return found
+    return None
+
+
+# Only these are worth printing out of the hundreds of /api/ paths a page
+# like this embeds - the rest is Nordnet's whole-app typed API client
+# (account opening, pensions, messages...), not anything about this stock.
+PRICE_PATH_KEYWORDS = (
+    "chart", "quote", "price", "instrument", "history",
+    "historical", "graph", "trade", "market", "tick",
+)
+
+
+def probe_nordnet_price_page(url: str) -> str:
+    """Fetch a Nordnet stock page and report what it reveals about a price API.
+
+    Purely investigative, same spirit as probe_instrument_lookup: Nordnet's
+    charts are drawn by front-end JS calling an undocumented API, and the
+    only way to find that API's shape is to look at what a real page actually
+    contains - embedded JSON, an instrument id, any /api/ path literal in the
+    HTML - rather than guess at URLs the way the Stooq fallback had to.
+
+    The page bundles its whole-app typed API client (account opening,
+    pensions, messages...) alongside anything instrument-specific, so the raw
+    path list is filtered down to what could plausibly serve a price chart;
+    an unfiltered dump both buries the signal and risks tripping CI log
+    truncation on an output that large.
+    """
+    session = _session()
+    session.headers["Accept"] = "text/html,application/xhtml+xml"
+    try:
+        response = session.get(url, timeout=TIMEOUT)
+    except requests.RequestException as exc:
+        return f"{url}: FEIL - {exc}"
+
+    body = response.text
+    lines = [f"{url}: HTTP {response.status_code}, {len(response.content)} bytes"]
+
+    if response.status_code != 200:
+        lines.append(f"Utdrag: {body[:300]!r}")
+        return "\n".join(lines)
+
+    # Trailing backslash is a JSON-in-JSON escaping artefact (an embedded,
+    # double-encoded blob), not part of the real path - stripped for clarity.
+    all_paths = {m.rstrip("\\") for m in re.findall(r'"(/api/[^"\s]+)"', body)}
+    relevant = sorted(p for p in all_paths if any(k in p.lower() for k in PRICE_PATH_KEYWORDS))
+    lines.append(f"Fant {len(all_paths)} /api/-stier totalt, {len(relevant)} ser "
+                 f"pris/instrument-relevante ut:")
+    lines.extend(f"  {p}" for p in relevant[:25])
+
+    ids = sorted(set(re.findall(r'"identifier"\s*:\s*"([^"]+)"', body)))[:10]
+    if ids:
+        lines.append(f"Fant identifier-felt: {', '.join(ids)}")
+
+    next_data = re.search(
+        r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', body, re.DOTALL
+    )
+    if next_data:
+        blob = next_data.group(1)
+        lines.append(f"__NEXT_DATA__ funnet, {len(blob)} tegn.")
+        for keyword in ("instrument", "identifier", "symbol", "chartData"):
+            hit = re.search(rf'"[^"]*{keyword}[^"]*"\s*:\s*("[^"]{{1,80}}"|\{{|\[)', blob, re.IGNORECASE)
+            if hit:
+                start = hit.start()
+                lines.append(f"  rundt {keyword!r}: {blob[start:start + 150]!r}")
+    elif len(body) < 5000:
+        lines.append(f"Siden er liten ({len(body)} tegn) - trolig et JS-skall uten "
+                      f"server-rendert data. Utdrag: {body[:300]!r}")
+
+    return "\n".join(lines)
+
+
+# Separator between market and ticker is not documented - probe_nordnet_price_page
+# only found the endpoint's shape, not its input format, so several plausible
+# shapes are tried and each result reported rather than assumed.
+_MARKET_ID_TEMPLATES = ["{market}:{ticker}", "{market}.{ticker}",
+                         "{ticker}:{market}", "{ticker}.{market}", "{market}/{ticker}"]
+
+# The price endpoint's own shape is confirmed from the page; only the "does
+# it need a login" question remains, so both plausible instrument routes are
+# tried once an id is in hand.
+_PRICE_PATH_TEMPLATES = ["/api/2/instruments/price/{id}", "/api/2/instruments/{id}"]
+
+
+def probe_nordnet_instrument_price(ticker: str, market: str) -> str:
+    """Two-step probe: resolve ticker+market to an instrument id, then price it.
+
+    Built directly from what probe_nordnet_price_page found embedded in a real
+    Nordnet stock page - a lookup endpoint that should turn a market+ticker
+    into an instrument id, and a price endpoint keyed by that id. Neither call
+    has been confirmed to work without a logged-in session (the fund-holdings
+    NORDNET_ENDPOINTS above never were either), so this reports exactly what
+    each candidate returns instead of assuming success.
+    """
+    session = _session()
+    lines: list[str] = []
+    instrument_id: Optional[str] = None
+
+    for template in _MARKET_ID_TEMPLATES:
+        candidate = template.format(market=market, ticker=ticker)
+        url = f"https://www.nordnet.no/api/2/instruments/lookup/market_id_identifier/{candidate}"
+        try:
+            response = session.get(url, timeout=TIMEOUT)
+        except requests.RequestException as exc:
+            lines.append(f"{url}: FEIL - {exc}")
+            continue
+        summary = f"{url}: HTTP {response.status_code}, {len(response.content)} bytes"
+        if response.status_code == 200:
+            try:
+                payload = response.json()
+            except ValueError:
+                summary += f", ikke JSON. Utdrag: {response.text[:150]!r}"
+            else:
+                found = _find_any_id(payload)
+                if found:
+                    summary += f", instrument_id {found}"
+                    instrument_id = instrument_id or found
+                else:
+                    summary += f", JSON uten gjenkjennelig id: {str(payload)[:150]!r}"
+        lines.append(summary)
+
+    if not instrument_id:
+        lines.append("\nIngen kandidat ga en instrument-id. Prøver ikke pris-endepunktet.")
+        return "\n".join(lines)
+
+    lines.append(f"\nFant instrument_id {instrument_id}. Prøver pris-endepunktene:")
+    for path_template in _PRICE_PATH_TEMPLATES:
+        url = f"https://www.nordnet.no{path_template.format(id=instrument_id)}"
+        try:
+            response = session.get(url, timeout=TIMEOUT)
+        except requests.RequestException as exc:
+            lines.append(f"{url}: FEIL - {exc}")
+            continue
+        summary = f"{url}: HTTP {response.status_code}, {len(response.content)} bytes"
+        if response.status_code == 200:
+            try:
+                payload = response.json()
+            except ValueError:
+                summary += f", ikke JSON. Utdrag: {response.text[:200]!r}"
+            else:
+                summary += f", JSON: {str(payload)[:300]!r}"
+        else:
+            summary += f", utdrag: {response.text[:200]!r}"
+        lines.append(summary)
+
+    return "\n".join(lines)
+
+
+def _find_any_id(node: Any) -> Optional[str]:
+    """Like _find_instrument_id, but for payloads with no ISIN to match against."""
+    if isinstance(node, dict):
+        for key in _ID_KEYS:
+            value = node.get(key)
+            if isinstance(value, (int, str)) and str(value).strip():
+                return str(value)
+        for child in node.values():
+            found = _find_any_id(child)
+            if found:
+                return found
+    elif isinstance(node, list):
+        for child in node:
+            found = _find_any_id(child)
             if found:
                 return found
     return None
