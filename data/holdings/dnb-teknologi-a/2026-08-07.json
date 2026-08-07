@@ -1,262 +1,254 @@
 {
   "fund_id": "dnb-teknologi-a",
   "retrieved": "2026-08-07",
-  "as_of": "2026-03-31",
+  "as_of": "2026-06-26",
   "source": "manual:config/funds/dnb-teknologi-a.holdings.csv",
-  "cash_pct": 1.546,
-  "equity_pct": 98.454,
+  "cash_pct": 1.65,
+  "equity_pct": 98.35,
   "holdings": [
     {
       "name": "Microsoft Corp",
-      "weight_pct": 9.139
+      "weight_pct": 8.77
+    },
+    {
+      "name": "Alphabet Inc",
+      "weight_pct": 7.73
+    },
+    {
+      "name": "Visa Inc",
+      "weight_pct": 6.78
     },
     {
       "name": "Amazon.com Inc",
-      "weight_pct": 6.838
-    },
-    {
-      "name": "Alphabet Inc Class A",
-      "weight_pct": 6.521
-    },
-    {
-      "name": "Meta Platforms Inc Class A",
-      "weight_pct": 4.61
-    },
-    {
-      "name": "NVIDIA Corp",
-      "weight_pct": 4.565
-    },
-    {
-      "name": "Atlassian Corp Class A",
-      "weight_pct": 4.245
-    },
-    {
-      "name": "Visa Inc Class A",
-      "weight_pct": 4.193
+      "weight_pct": 6.17
     },
     {
       "name": "Broadcom Inc",
-      "weight_pct": 3.503
+      "weight_pct": 5.36
     },
     {
-      "name": "Telefonaktiebolaget L M Ericsson Class B",
-      "weight_pct": 3.345
+      "name": "Mastercard Inc",
+      "weight_pct": 4.57
     },
     {
-      "name": "STMicroelectronics NV",
-      "weight_pct": 3.132
+      "name": "Meta Platforms Inc",
+      "weight_pct": 4.46
     },
     {
-      "name": "Oracle Corp",
-      "weight_pct": 2.745
+      "name": "Atlassian Corp",
+      "weight_pct": 4.36
     },
     {
-      "name": "Mastercard Inc Class A",
-      "weight_pct": 2.624
+      "name": "Nvidia Corp",
+      "weight_pct": 4.24
+    },
+    {
+      "name": "Telefonaktiebolaget LM Ericsson",
+      "weight_pct": 3.81
     },
     {
       "name": "SAP SE",
-      "weight_pct": 2.579
-    },
-    {
-      "name": "Apple Inc",
-      "weight_pct": 2.451
-    },
-    {
-      "name": "Samsung Electr-Gdr Reg S",
-      "weight_pct": 2.418
-    },
-    {
-      "name": "HP Inc",
-      "weight_pct": 2.272
+      "weight_pct": 2.34
     },
     {
       "name": "Dassault Systemes SE",
-      "weight_pct": 1.895
-    },
-    {
-      "name": "Sony Group Corp",
-      "weight_pct": 1.884
+      "weight_pct": 2.17
     },
     {
       "name": "Adyen NV",
-      "weight_pct": 1.668
+      "weight_pct": 2.16
     },
     {
-      "name": "Nokia Oyj",
-      "weight_pct": 1.587
+      "name": "HP Inc",
+      "weight_pct": 2.14
+    },
+    {
+      "name": "Sony Group Corp",
+      "weight_pct": 2.11
+    },
+    {
+      "name": "Taiwan Semiconductor Manufacturing Co Ltd",
+      "weight_pct": 1.98
     },
     {
       "name": "T-Mobile US Inc",
-      "weight_pct": 1.564
+      "weight_pct": 1.91
     },
     {
-      "name": "Nordic Semiconductor ASA",
-      "weight_pct": 1.521
-    },
-    {
-      "name": "Marvell Technology Inc",
-      "weight_pct": 1.521
-    },
-    {
-      "name": "ASML Holding NV",
-      "weight_pct": 1.508
-    },
-    {
-      "name": "ServiceNow Inc",
-      "weight_pct": 1.497
-    },
-    {
-      "name": "Check Point Software Technologies Ltd",
-      "weight_pct": 1.475
-    },
-    {
-      "name": "Telia Company AB",
-      "weight_pct": 1.175
+      "name": "Samsung Electronics Co Ltd",
+      "weight_pct": 1.67
     },
     {
       "name": "Booking Holdings Inc",
-      "weight_pct": 1.057
+      "weight_pct": 1.63
     },
     {
-      "name": "Deutsche Telekom AG",
-      "weight_pct": 1.014
+      "name": "Intuit Inc",
+      "weight_pct": 1.59
     },
     {
       "name": "Logitech International SA",
-      "weight_pct": 0.997
+      "weight_pct": 1.56
     },
     {
-      "name": "Lenovo Group Ltd",
-      "weight_pct": 0.913
-    },
-    {
-      "name": "Match Group Inc Ordinary Shares - New",
-      "weight_pct": 0.893
+      "name": "ASML Holding NV",
+      "weight_pct": 1.36
     },
     {
       "name": "Peloton Interactive Inc",
-      "weight_pct": 0.827
+      "weight_pct": 1.33
     },
     {
-      "name": "Asmodee Group AB Ordinary Shares - Class B",
-      "weight_pct": 0.811
-    },
-    {
-      "name": "Embracer Group AB",
-      "weight_pct": 0.713
-    },
-    {
-      "name": "Criteo Sa-Spon Adr",
-      "weight_pct": 0.704
-    },
-    {
-      "name": "Qualcomm Inc",
-      "weight_pct": 0.668
-    },
-    {
-      "name": "Taiwan Semiconductor-Sp Adr",
-      "weight_pct": 0.62
-    },
-    {
-      "name": "Arrow Electronics Inc",
-      "weight_pct": 0.616
+      "name": "Nordic Semiconductor ASA",
+      "weight_pct": 1.31
     },
     {
       "name": "Skyworks Solutions Inc",
-      "weight_pct": 0.612
+      "weight_pct": 1.29
     },
     {
-      "name": "Advanced Micro Devices Inc",
-      "weight_pct": 0.493
+      "name": "Check Point Software Technologies Ltd",
+      "weight_pct": 1.14
     },
     {
-      "name": "TomTom NV",
-      "weight_pct": 0.393
+      "name": "Oracle Corp",
+      "weight_pct": 1.13
     },
     {
-      "name": "Cisco Systems Inc",
-      "weight_pct": 0.363
+      "name": "Apple Inc",
+      "weight_pct": 1.11
     },
     {
-      "name": "Accenture PLC Class A",
-      "weight_pct": 0.356
+      "name": "Nintendo Co Ltd",
+      "weight_pct": 1.03
     },
     {
-      "name": "Arista Networks Inc",
-      "weight_pct": 0.331
+      "name": "Match Group Inc",
+      "weight_pct": 1.02
     },
     {
-      "name": "Adtran Holdings Inc",
-      "weight_pct": 0.33
+      "name": "Telia Company AB",
+      "weight_pct": 0.98
     },
     {
-      "name": "Infineon Technologies AG",
-      "weight_pct": 0.312
+      "name": "Accenture Plc",
+      "weight_pct": 0.96
     },
     {
-      "name": "Intel Corp",
-      "weight_pct": 0.309
+      "name": "ServiceNow Inc",
+      "weight_pct": 0.91
     },
     {
-      "name": "AppLovin Corp Ordinary Shares - Class A",
-      "weight_pct": 0.292
+      "name": "Embracer Group AB",
+      "weight_pct": 0.83
     },
     {
-      "name": "Netflix Inc",
-      "weight_pct": 0.283
+      "name": "Asmodee Group AB",
+      "weight_pct": 0.68
     },
     {
-      "name": "Cirrus Logic Inc",
-      "weight_pct": 0.277
+      "name": "Criteo SA",
+      "weight_pct": 0.65
+    },
+    {
+      "name": "Deutsche Telekom AG",
+      "weight_pct": 0.48
     },
     {
       "name": "Salesforce Inc",
-      "weight_pct": 0.246
+      "weight_pct": 0.46
+    },
+    {
+      "name": "Analog Devices Inc",
+      "weight_pct": 0.38
+    },
+    {
+      "name": "Cisco Systems Inc",
+      "weight_pct": 0.36
+    },
+    {
+      "name": "Arista Networks Inc",
+      "weight_pct": 0.36
+    },
+    {
+      "name": "TomTom NV",
+      "weight_pct": 0.34
+    },
+    {
+      "name": "CDW Corp/DE",
+      "weight_pct": 0.34
+    },
+    {
+      "name": "Adobe Inc",
+      "weight_pct": 0.3
     },
     {
       "name": "Applied Materials Inc",
-      "weight_pct": 0.243
+      "weight_pct": 0.28
     },
     {
-      "name": "Coffee Stain Group AB Ordinary Shares - Class B",
-      "weight_pct": 0.227
+      "name": "AppLovin Corp",
+      "weight_pct": 0.24
     },
     {
-      "name": "Micron Technology Inc",
-      "weight_pct": 0.21
+      "name": "ADTRAN Holdings Inc",
+      "weight_pct": 0.22
+    },
+    {
+      "name": "Arrow Electronics Inc",
+      "weight_pct": 0.2
+    },
+    {
+      "name": "Coffee Stain Group AB",
+      "weight_pct": 0.19
+    },
+    {
+      "name": "Cint Group AB",
+      "weight_pct": 0.19
+    },
+    {
+      "name": "Netflix Inc",
+      "weight_pct": 0.18
     },
     {
       "name": "Dustin Group AB",
-      "weight_pct": 0.178
-    },
-    {
-      "name": "Mobileye Global Inc Ordinary Shares - Class A",
       "weight_pct": 0.17
     },
     {
-      "name": "Datadog Inc Class A",
-      "weight_pct": 0.151
-    },
-    {
-      "name": "Cint Group AB Ordinary Shares",
-      "weight_pct": 0.148
+      "name": "Mobileye Global Inc",
+      "weight_pct": 0.13
     },
     {
       "name": "Stillfront Group AB",
-      "weight_pct": 0.119
+      "weight_pct": 0.11
     },
     {
       "name": "Atea ASA",
-      "weight_pct": 0.066
+      "weight_pct": 0.1
     },
     {
-      "name": "Ubisoft Entertainment",
-      "weight_pct": 0.043
+      "name": "Ubisoft Entertainment SA",
+      "weight_pct": 0.05
     },
     {
-      "name": "Aim Restitution Equity",
-      "weight_pct": 0.013
+      "name": "Swisscom AG",
+      "weight_pct": 0.01
+    },
+    {
+      "name": "Nokia Oyj",
+      "weight_pct": 0.0
+    },
+    {
+      "name": "Infineon Technologies AG",
+      "weight_pct": 0.0
+    },
+    {
+      "name": "NOS SGPS SA",
+      "weight_pct": 0.0
+    },
+    {
+      "name": "TDC AS",
+      "weight_pct": 0.0
     }
   ]
 }
