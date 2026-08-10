@@ -268,6 +268,34 @@ PRICE_PATH_KEYWORDS = (
 )
 
 
+def probe_raw_url(url: str, referer: Optional[str] = None, origin: Optional[str] = None) -> str:
+    """GET an arbitrary URL cold and report exactly what comes back.
+
+    For testing a specific request copied out of a browser's Network tab -
+    e.g. a separate API host (api.prod.nntech.io) found on a Nordnet page,
+    which may or may not carry the same session/CSRF wall as nordnet.no
+    itself. Reports status, the response's own CORS/content headers, and a
+    body snippet, rather than assuming either way.
+    """
+    headers = {"User-Agent": USER_AGENT, "Accept": "application/json, */*"}
+    if referer:
+        headers["Referer"] = referer
+    if origin:
+        headers["Origin"] = origin
+    try:
+        response = requests.get(url, timeout=TIMEOUT, headers=headers)
+    except requests.RequestException as exc:
+        return f"{url}: FEIL - {exc}"
+
+    lines = [f"{url}: HTTP {response.status_code}, {len(response.content)} bytes"]
+    for key in ("content-type", "access-control-allow-origin", "access-control-allow-credentials"):
+        value = response.headers.get(key)
+        if value:
+            lines.append(f"  {key}: {value}")
+    lines.append(f"  body: {response.text[:500]!r}")
+    return "\n".join(lines)
+
+
 def probe_nordnet_price_page(url: str) -> str:
     """Fetch a Nordnet stock page and report what it reveals about a price API.
 

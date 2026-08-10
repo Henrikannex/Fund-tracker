@@ -96,6 +96,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_pyq.add_argument("ticker")
 
+    p_praw = sub.add_parser(
+        "probe-url", help="Hent en vilkårlig URL kaldt og vis nøyaktig hva som svarer"
+    )
+    p_praw.add_argument("url")
+    p_praw.add_argument("--referer", default=None)
+    p_praw.add_argument("--origin", default=None)
+
     p_val = sub.add_parser(
         "validate", help="Mål modellen mot fondets publiserte periodeavkastning"
     )
@@ -128,6 +135,7 @@ def main(argv: list[str] | None = None) -> int:
         "probe-price": cmd_probe_price,
         "probe-instrument-price": cmd_probe_instrument_price,
         "probe-yahoo-price": cmd_probe_yahoo_price,
+        "probe-url": cmd_probe_url,
         "funds": cmd_funds,
     }
     return handlers[args.command](args)
@@ -207,6 +215,11 @@ def cmd_probe_instrument_price(args) -> int:
 
 def cmd_probe_yahoo_price(args) -> int:
     print(price_source.probe_yahoo_quote_page(args.ticker))
+    return 0
+
+
+def cmd_probe_url(args) -> int:
+    print(holdings_mod.probe_raw_url(args.url, referer=args.referer, origin=args.origin))
     return 0
 
 

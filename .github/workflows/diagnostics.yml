@@ -23,14 +23,15 @@ on:
         description: Hva skal kjøres
         type: choice
         default: alt
-        options: [alt, probe, resolve, estimate, validate, backtest, probe-price, probe-instrument-price, probe-yahoo-price]
+        options: [alt, probe, resolve, estimate, validate, backtest, probe-price, probe-instrument-price, probe-yahoo-price, probe-url]
       backtest_days:
         description: Antall handelsdager i backtesten
         default: "250"
       url:
         description: >-
-          Nordnet-aksjeside å inspisere (probe-price), eller å besøke først
-          for sesjonskapsler før oppslaget (probe-instrument-price)
+          Nordnet-aksjeside å inspisere (probe-price), å besøke først for
+          sesjonskapsler (probe-instrument-price), eller den vilkårlige
+          URL-en å teste kaldt (probe-url)
         default: "https://www.nordnet.no/aksjer/kurser/microsoft-msft-xnas"
       ticker:
         description: Ticker (kun for probe-instrument-price)
@@ -109,3 +110,14 @@ jobs:
           python -m fundtracker.cli probe-yahoo-price "$TICKER"
           echo
           python -m fundtracker.cli probe-yahoo-price "SAP.DE"
+
+      - name: Vilkårlig URL - kald test
+        # $URL settes til den fulle forespørselen som skal testes; Referer og
+        # Origin satt til nordnet.no siden det er der forespørselen ble sett
+        # (Network-fanen), for en API-host som tillater cross-site kall derfra.
+        if: env.TASK == 'probe-url'
+        continue-on-error: true
+        run: >
+          python -m fundtracker.cli probe-url "$URL"
+          --referer "https://www.nordnet.no/"
+          --origin "https://www.nordnet.no"
