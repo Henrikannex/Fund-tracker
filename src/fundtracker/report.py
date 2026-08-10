@@ -48,10 +48,18 @@ def subject(est: Estimate) -> str:
     return f"{est.fund_name}: {_pct(est.return_pct)} ({est.date.strftime('%d.%m')})"
 
 
-def to_text(est: Estimate) -> str:
+def _comparison_line(comparisons: list[tuple[str, float]]) -> str:
+    return "  ·  ".join(f"{name} {_pct(pct)}" for name, pct in comparisons)
+
+
+def to_text(est: Estimate, comparisons: list[tuple[str, float]] | None = None) -> str:
     lines = [
         f"{est.fund_name}",
         f"Estimert avkastning {_no_date(est.date)}: {_pct(est.return_pct)}",
+    ]
+    if comparisons:
+        lines.append(f"vs. {_comparison_line(comparisons)}")
+    lines += [
         "",
         "Sammensetning:",
         _summary_line("Aksjeavkastning i NOK", _pct(est.equity_return_pct)),
@@ -99,8 +107,23 @@ def _contribution_line(c) -> str:
     )
 
 
-def to_html(est: Estimate) -> str:
+def to_html(est: Estimate, comparisons: list[tuple[str, float]] | None = None) -> str:
     colour = "#137333" if est.return_pct >= 0 else "#c5221f"
+
+    comparison_html = ""
+    if comparisons:
+        parts = []
+        for name, pct in comparisons:
+            peer_colour = "#137333" if pct >= 0 else "#c5221f"
+            parts.append(
+                f"<span style='color:#666'>{escape(name)}</span> "
+                f"<span style='color:{peer_colour};font-weight:600'>{_pct(pct)}</span>"
+            )
+        comparison_html = (
+            "<div style='font-size:13px;color:#666;margin-top:2px'>vs. "
+            + "&nbsp;&nbsp;·&nbsp;&nbsp;".join(parts)
+            + "</div>"
+        )
 
     def rows(contribs) -> str:
         out = []
@@ -174,6 +197,7 @@ def to_html(est: Estimate) -> str:
     {_pct(est.return_pct)}
   </div>
   <div style="font-size:14px;color:#666">estimert for {_no_date(est.date)}</div>
+  {comparison_html}
 
   <table style="margin-top:24px;font-size:14px;border-collapse:collapse">
     <tr><td style="padding:3px 20px 3px 0;color:#666">Aksjeavkastning i NOK</td>

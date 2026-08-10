@@ -1,0 +1,50 @@
+# Beholdningsliste for SEB Teknologifond A (SEK), per 2026-06-30.
+# Kilde: Morningstar (fond-ID, se seb-teknologifond-a.yaml), "komplett
+# beholdningsliste". Aksjedelen summerer til 97,405 %; resten er kontanter og
+# en Nasdaq-100-future som netter mot en kontant-offset (se cash_pct/
+# equity_pct i yaml-fila). Kun brukt som sammenligningsfond i
+# DNB Teknologi-e-posten, ikke som et selvstendig fond med egen validering.
+#
+# Fem poster stod med 0,000 % vekt i kilden (Kioxia, SAP, Bentley Systems,
+# Tyler Technologies, Oracle) og er utelatt her - de bidrar uansett ingenting.
+name,weight_pct
+NVIDIA Corp,8.749
+Taiwan Semiconductor Manufacturing Co Ltd,6.452
+Microsoft Corp,6.294
+Applied Materials Inc,5.906
+SK Hynix Inc,5.863
+Advanced Micro Devices Inc,5.205
+ASML Holding NV,5.075
+Broadcom Inc,4.285
+Micron Technology Inc,3.507
+Cisco Systems Inc,3.175
+Alphabet Inc Class A,3.045
+Amazon.com Inc,2.944
+Samsung Electronics Co Ltd,2.810
+Palo Alto Networks Inc,2.360
+Cadence Design Systems Inc,2.149
+ASM International NV,2.073
+Marvell Technology Inc,1.943
+Keysight Technologies Inc,1.873
+MediaTek Inc,1.741
+Apple Inc,1.505
+Intel Corp,1.494
+ServiceNow Inc,1.483
+RELX PLC,1.426
+Netflix Inc,1.422
+Arista Networks Inc,1.395
+Snowflake Inc,1.086
+Veeva Systems Inc Class A,1.055
+Motorola Solutions Inc,1.040
+Vertiv Holdings Co Class A,0.998
+Allegro MicroSystems Inc,0.962
+Coherent Corp,0.952
+Scout24 SE,0.951
+The Descartes Systems Group Inc,0.920
+Qualcomm Inc,0.802
+MercadoLibre Inc,0.801
+Okta Inc Class A,0.654
+Adyen NV,0.565
+Onto Innovation Inc,0.503
+Alibaba Group Holding Ltd,0.481
+Lumentum Holdings Inc,0.464

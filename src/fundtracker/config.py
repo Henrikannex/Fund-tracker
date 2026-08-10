@@ -41,6 +41,10 @@ class FundConfig:
     # Published period returns to check the model against, when no NAV series
     # is available. See fundtracker.validate.
     benchmarks: dict[str, Any] = field(default_factory=dict)
+    # Other funds whose same-day estimate is worth showing alongside this
+    # fund's in the email, e.g. sector peers. These are estimated the same way
+    # but never get their own contributor breakdown or email.
+    compare_funds: list[str] = field(default_factory=list)
 
     @property
     def daily_fee_drag(self) -> float:
@@ -111,6 +115,7 @@ def load_fund(fund_id: str) -> FundConfig:
         tickers=tickers,
         ignore=list(raw.get("ignore") or []),
         benchmarks=raw.get("benchmarks") or {},
+        compare_funds=list(raw.get("compare_funds") or []),
     )
 
 

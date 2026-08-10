@@ -192,3 +192,10 @@ benchmarks:
 ignore:
   - Kontanter
   - Cash
+
+# Sammenligningsfond hvis dagsestimat vises som en liten linje under
+# hovedtallet i e-posten - ikke egne fond med egen validering/e-post, bare et
+# raskt "hvordan gjorde de andre teknologifondene det i dag"-øyeblikksbilde.
+compare_funds:
+  - dnb-disruptive-opportunities-c1
+  - seb-teknologifond-a

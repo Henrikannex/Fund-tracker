@@ -1,0 +1,99 @@
+# Beholdningsliste for DNB Fund Disruptive Opportunities C1 EUR Acc, per 2026-06-30.
+# Kilde: Morningstar (fond-ID F0000041E7), "topp 99 beholdninger" - Morningstar
+# returnerer maks 99 poster, så listen kan være avkortet i forhold til fondets
+# fulle beholdning. Kun brukt som sammenligningsfond i DNB Teknologi-e-posten,
+# ikke som et selvstendig fond med egen validering.
+name,weight_pct
+NVIDIA Corp,4.325
+Micron Technology Inc,3.994
+Amazon.com Inc,2.989
+Tesla Inc,2.955
+Napatech AS,2.474
+Tempus AI Inc,2.455
+Samsung Electronics Co Ltd,2.281
+Johnson & Johnson,2.210
+Microsoft Corp,2.205
+JPMorgan Chase & Co,2.178
+Roche Holding AG,2.143
+Alphabet Inc Class A,2.137
+Eli Lilly and Co,2.084
+SoFi Technologies Inc,2.066
+Moog Inc Class A,1.984
+RBC Bearings Inc,1.973
+Intuitive Surgical Inc,1.970
+Schneider Electric SE,1.901
+Novo Nordisk AS B,1.639
+Taiwan Semiconductor Manufacturing Co Ltd,1.531
+Ouster Inc Class A,1.460
+Aurora Innovation Inc Class A,1.376
+SanDisk Corp,1.362
+Ondas Holdings Inc,1.294
+Eos Energy Enterprises Inc Class A,1.256
+Datadog Inc Class A,1.231
+Amprius Technologies Inc,1.179
+Kraken Robotics Inc,1.174
+ABB Ltd,1.172
+Deere & Co,1.168
+Snowflake Inc,1.163
+CrowdStrike Holdings Inc Class A,1.150
+Broadcom Inc,1.129
+Vertiv Holdings Co Class A,1.120
+AST SpaceMobile Inc Class A,1.102
+SK Hynix Inc,1.073
+Advanced Micro Devices Inc,1.042
+BE Semiconductor Industries NV,1.031
+Nordic Semiconductor ASA,1.014
+AbCellera Biologics Inc,1.012
+Aixtron SE,0.987
+Butterfly Network Inc Class A,0.925
+Cameco Corp,0.902
+First Solar Inc,0.822
+Schaeffler AG Preferred,0.807
+BlackBerry Ltd,0.792
+Lumentum Holdings Inc,0.779
+Intel Corp,0.753
+AXT Inc,0.714
+MediaTek Inc,0.657
+T1 Energy Inc,0.650
+MercadoLibre Inc,0.572
+QuantumScape Corp Class A,0.553
+Vishay Precision Group Inc,0.528
+Lemonade Inc,0.521
+Tower Semiconductor Ltd,0.513
+Oklo Inc Class A,0.497
+Recursion Pharmaceuticals Inc Class A,0.496
+Keyence Corp,0.491
+Marvell Technology Inc,0.484
+Panasonic Holdings Corp,0.476
+Texas Instruments Inc,0.454
+One Stop Systems Inc,0.426
+MP Materials Corp Class A,0.420
+Harmonic Drive Systems Inc,0.416
+Norbit ASA,0.413
+Ambarella Inc,0.413
+Daifuku Co Ltd,0.402
+IQE PLC,0.396
+Fanuc Corp,0.388
+Kawasaki Heavy Industries Ltd,0.380
+Navitas Semiconductor Corp Class A,0.372
+Ensurge Micropower ASA Class A,0.342
+TDK Corp,0.335
+Warby Parker Inc Class A,0.320
+Hyundai Motor Co,0.317
+Allient Inc,0.286
+Rainbow Robotics,0.283
+ADS-TEC Energy PLC Class A,0.282
+Joby Aviation Inc,0.277
+Bloom Energy Corp Class A,0.275
+Archer Aviation Inc,0.267
+ASP Isotopes Inc,0.263
+Microbot Medical Inc,0.260
+Ascent Solar Technologies Inc,0.241
+Serve Robotics Inc,0.210
+MicroStrategy Inc,0.208
+Qualcomm Inc,0.199
+NextEra Energy Inc,0.194
+LightPath Technologies Inc Class A,0.182
+Eaton Corp PLC,0.179
+Syntec Optics Holdings Inc Class A,0.170
+Hyliion Holdings Corp Class A,0.169

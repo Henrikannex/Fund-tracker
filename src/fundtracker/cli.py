@@ -234,6 +234,31 @@ def _price_context(fund, snapshot, target: date):
     return prices, fx, staleness, observed
 
 
+def _comparison_estimates(fund, target: date) -> list[tuple[str, float]]:
+    """Same-day return for each of ``fund``'s comparison peers.
+
+    Best-effort: a peer that fails to price (stale ticker map, source outage)
+    is dropped with a warning rather than failing the whole email, since these
+    numbers are a sidebar, not the point of the run.
+    """
+    results: list[tuple[str, float]] = []
+    for peer_id in fund.compare_funds:
+        try:
+            peer = load_fund(peer_id)
+            peer_snapshot = holdings_mod.load_holdings(peer)
+            peer_prices, peer_fx, peer_staleness, peer_observed = _price_context(
+                peer, peer_snapshot, target
+            )
+            peer_est = estimate_return(
+                peer, peer_snapshot, target, peer_prices, peer_fx,
+                peer_staleness, peer_observed,
+            )
+            results.append((peer.name, peer_est.return_pct))
+        except Exception as exc:  # noqa: BLE001 - a sidebar must not sink the email
+            log.warning("Sammenligningsfond %s feilet: %s", peer_id, exc)
+    return results
+
+
 def cmd_estimate(args) -> int:
     fund = load_fund(args.fund)
     target = datetime.strptime(args.date, "%Y-%m-%d").date() if args.date else date.today()
@@ -272,7 +297,12 @@ def cmd_estimate(args) -> int:
     if args.save:
         _append_estimate(fund, est)
     if args.email:
-        notify.send_email(report.subject(est), report.to_text(est), report.to_html(est))
+        comparisons = _comparison_estimates(fund, target) if fund.compare_funds else []
+        notify.send_email(
+            report.subject(est),
+            report.to_text(est, comparisons),
+            report.to_html(est, comparisons),
+        )
     return 0
 
 
