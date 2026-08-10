@@ -1,0 +1,147 @@
+id: dnb-disruptive-opportunities-c1
+name: DNB Disruptive Opportunities C1 EUR Acc
+isin: LU2061961574
+currency: EUR
+
+# Uverifisert mot en primærkilde (dnbam.com/dnb.no svarte ikke ved research);
+# to uavhengige fondsaggregatorer er enige om 0,76 %. Sjekk mot DNBs eget
+# faktaark hvis dette blir avgjørende for noe mer enn e-postlinjen.
+total_cost_pct: 0.76
+trading_days_per_year: 252
+
+# Kun brukt som sammenligningsfond i DNB Teknologi-e-posten (se compare_funds
+# i dnb-teknologi-a.yaml) - ikke et selvstendig fond med egen e-post/
+# validering, så det er ikke satt opp med nav_source eller benchmarks.
+refresh_hint: >-
+  Hent ny "topp 100 beholdninger"-liste fra Morningstar (fond-ID F0000041E7,
+  uverifisert - se holdings-CSV-en).
+
+holdings_source:
+  type: manual
+  morningstar_secid: F0000041E7
+  manual_file: config/funds/dnb-disruptive-opportunities-c1.holdings.csv
+  as_of: 2026-06-30
+  # Morningstar oppgir bare topp 99 poster og ingen kontantandel, så listen kan
+  # være avkortet i forhold til fondets fulle beholdning. De 97 postene vi har
+  # navn og vekt for summerer til 94,66 %; resten (5,34 %) er ukjent -
+  # halerester og/eller kontanter - og behandles som kontanter (null
+  # avkastning) i mangel av bedre informasjon.
+  cash_pct: 5.34
+  equity_pct: 94.66
+
+# Navn slik Morningstar-uttrekket skriver dem -> pristicker og
+# noteringsvaluta. Gjenbrukt fra dnb-teknologi-a.yaml der samme selskap
+# forekommer der, ellers slått opp separat.
+tickers:
+  # --- Gjenbrukt fra dnb-teknologi-a.yaml. ---
+  Microsoft Corp:                            {ticker: MSFT,       currency: USD}
+  Amazon.com Inc:                            {ticker: AMZN,       currency: USD}
+  Alphabet Inc Class A:                      {ticker: GOOGL,      currency: USD}
+  Broadcom Inc:                              {ticker: AVGO,       currency: USD}
+  Netflix Inc:                               {ticker: NFLX,       currency: USD}
+  Taiwan Semiconductor Manufacturing Co Ltd: {ticker: TSM,        currency: USD}
+  Samsung Electronics Co Ltd:                {ticker: SMSN.IL,    currency: USD}
+  Nordic Semiconductor ASA:                  {ticker: NOD.OL,     currency: NOK}
+  Intel Corp:                                {ticker: INTC,       currency: USD}
+  Marvell Technology Inc:                    {ticker: MRVL,       currency: USD}
+  Qualcomm Inc:                              {ticker: QCOM,       currency: USD}
+  MediaTek Inc:                              {ticker: "2454.TW",  currency: TWD}
+
+  # --- USA, USD. ---
+  NVIDIA Corp:                               {ticker: NVDA,       currency: USD}
+  Micron Technology Inc:                     {ticker: MU,         currency: USD}
+  Tesla Inc:                                 {ticker: TSLA,       currency: USD}
+  Tempus AI Inc:                             {ticker: TEM,        currency: USD}
+  Johnson & Johnson:                         {ticker: JNJ,        currency: USD}
+  JPMorgan Chase & Co:                       {ticker: JPM,        currency: USD}
+  Eli Lilly and Co:                          {ticker: LLY,        currency: USD}
+  SoFi Technologies Inc:                     {ticker: SOFI,       currency: USD}
+  Moog Inc Class A:                          {ticker: MOG-A,      currency: USD}
+  RBC Bearings Inc:                          {ticker: RBC,        currency: USD}
+  Intuitive Surgical Inc:                    {ticker: ISRG,       currency: USD}
+  Ouster Inc Class A:                        {ticker: OUST,       currency: USD}
+  Aurora Innovation Inc Class A:             {ticker: AUR,        currency: USD}
+  # 2025 Western Digital-utskilling, egen Nasdaq-notering siden feb 2025.
+  SanDisk Corp:                              {ticker: SNDK,       currency: USD}
+  Ondas Holdings Inc:                        {ticker: ONDS,       currency: USD}
+  Eos Energy Enterprises Inc Class A:        {ticker: EOSE,       currency: USD}
+  Datadog Inc Class A:                       {ticker: DDOG,       currency: USD}
+  Amprius Technologies Inc:                  {ticker: AMPX,       currency: USD}
+  Deere & Co:                                {ticker: DE,         currency: USD}
+  Snowflake Inc:                             {ticker: SNOW,       currency: USD}
+  CrowdStrike Holdings Inc Class A:          {ticker: CRWD,       currency: USD}
+  Vertiv Holdings Co Class A:                {ticker: VRT,        currency: USD}
+  AST SpaceMobile Inc Class A:               {ticker: ASTS,       currency: USD}
+  Advanced Micro Devices Inc:                {ticker: AMD,        currency: USD}
+  AbCellera Biologics Inc:                   {ticker: ABCL,       currency: USD}
+  Butterfly Network Inc Class A:             {ticker: BFLY,       currency: USD}
+  First Solar Inc:                           {ticker: FSLR,       currency: USD}
+  Lumentum Holdings Inc:                     {ticker: LITE,       currency: USD}
+  AXT Inc:                                   {ticker: AXTI,       currency: USD}
+  # Tidligere FREYR Battery; omdøpt og ny ticker (fra FREY) 3. mars 2025.
+  T1 Energy Inc:                             {ticker: TE,         currency: USD}
+  MercadoLibre Inc:                          {ticker: MELI,       currency: USD}
+  QuantumScape Corp Class A:                 {ticker: QS,         currency: USD}
+  Vishay Precision Group Inc:                {ticker: VPG,        currency: USD}
+  Lemonade Inc:                              {ticker: LMND,       currency: USD}
+  Tower Semiconductor Ltd:                   {ticker: TSEM,       currency: USD}
+  Oklo Inc Class A:                          {ticker: OKLO,       currency: USD}
+  Recursion Pharmaceuticals Inc Class A:     {ticker: RXRX,       currency: USD}
+  Texas Instruments Inc:                     {ticker: TXN,        currency: USD}
+  One Stop Systems Inc:                      {ticker: OSS,        currency: USD}
+  MP Materials Corp Class A:                 {ticker: MP,         currency: USD}
+  Ambarella Inc:                             {ticker: AMBA,       currency: USD}
+  Navitas Semiconductor Corp Class A:        {ticker: NVTS,       currency: USD}
+  Warby Parker Inc Class A:                  {ticker: WRBY,       currency: USD}
+  Joby Aviation Inc:                         {ticker: JOBY,       currency: USD}
+  Bloom Energy Corp Class A:                 {ticker: BE,         currency: USD}
+  Archer Aviation Inc:                       {ticker: ACHR,       currency: USD}
+  ASP Isotopes Inc:                          {ticker: ASPI,       currency: USD}
+  Microbot Medical Inc:                      {ticker: MBOT,       currency: USD}
+  Ascent Solar Technologies Inc:             {ticker: ASTI,       currency: USD}
+  Serve Robotics Inc:                        {ticker: SERV,       currency: USD}
+  MicroStrategy Inc:                         {ticker: MSTR,       currency: USD}
+  NextEra Energy Inc:                        {ticker: NEE,        currency: USD}
+  LightPath Technologies Inc Class A:        {ticker: LPTH,       currency: USD}
+  Eaton Corp PLC:                            {ticker: ETN,        currency: USD}
+  Syntec Optics Holdings Inc Class A:        {ticker: OPTX,       currency: USD}
+  Hyliion Holdings Corp Class A:             {ticker: HYLN,       currency: USD}
+  ADS-TEC Energy PLC Class A:                {ticker: ADSE,       currency: USD}
+  Allient Inc:                               {ticker: ALNT,       currency: USD}
+
+  # --- Dobbeltnotert; amerikansk linje valgt som den mer likvide. ---
+  Cameco Corp:                               {ticker: CCJ,        currency: USD}
+  BlackBerry Ltd:                             {ticker: BB,        currency: USD}
+
+  # --- Europa, primærnotering. ---
+  Roche Holding AG:                          {ticker: ROG.SW,     currency: CHF}
+  Schneider Electric SE:                     {ticker: SU.PA,      currency: EUR}
+  Novo Nordisk AS B:                         {ticker: NOVO-B.CO,  currency: DKK}
+  ABB Ltd:                                   {ticker: ABBN.SW,    currency: CHF}
+  BE Semiconductor Industries NV:            {ticker: BESI.AS,    currency: EUR}
+  Aixtron SE:                                {ticker: AIXA.DE,    currency: EUR}
+  IQE PLC:                                   {ticker: IQE.L,      currency: GBP}
+  # Preferanseaksjene (DE000SHA0159) ble avviklet okt. 2024 etter
+  # Vitesco-fusjonen; posten er nå den sammenslåtte stamaksjen SHA0.
+  Schaeffler AG Preferred:                   {ticker: SHA0.DE,    currency: EUR}
+
+  # --- Norden. ---
+  # Oslo Børs, ikke Nasdaq København - dansk selskap, norsk notering.
+  Napatech AS:                               {ticker: NAPA.OL,    currency: NOK}
+  Norbit ASA:                                {ticker: NORBT.OL,   currency: NOK}
+  Ensurge Micropower ASA Class A:            {ticker: ENSU.OL,    currency: NOK}
+
+  # --- Asia. ---
+  SK Hynix Inc:                              {ticker: "000660.KS", currency: KRW}
+  Panasonic Holdings Corp:                   {ticker: "6752.T",   currency: JPY}
+  Keyence Corp:                              {ticker: "6861.T",   currency: JPY}
+  Harmonic Drive Systems Inc:                {ticker: "6324.T",   currency: JPY}
+  Daifuku Co Ltd:                            {ticker: "6383.T",   currency: JPY}
+  Fanuc Corp:                                {ticker: "6954.T",   currency: JPY}
+  Kawasaki Heavy Industries Ltd:              {ticker: "7012.T",  currency: JPY}
+  TDK Corp:                                  {ticker: "6762.T",   currency: JPY}
+  Hyundai Motor Co:                          {ticker: "005380.KS", currency: KRW}
+  Rainbow Robotics:                          {ticker: "277810.KQ", currency: KRW}
+
+  # --- Canada, eneste notering. ---
+  Kraken Robotics Inc:                       {ticker: PNG.V,      currency: CAD}
