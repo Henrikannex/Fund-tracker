@@ -1,0 +1,76 @@
+id: seb-teknologifond-a
+name: SEB Teknologifond A
+isin: SE0000984114
+currency: SEK
+
+# SEBs oppgitte årlige forvaltningshonorar for andelsklasse A.
+total_cost_pct: 1.50
+trading_days_per_year: 252
+
+# Kun brukt som sammenligningsfond i DNB Teknologi-e-posten (se compare_funds
+# i dnb-teknologi-a.yaml) - ikke et selvstendig fond med egen e-post/
+# validering, så det er ikke satt opp med nav_source eller benchmarks.
+refresh_hint: >-
+  Hent ny beholdningsliste fra Morningstar (fond-ID F0GBR04M6J) eller SEBs
+  fondsside.
+
+holdings_source:
+  type: manual
+  morningstar_secid: F0GBR04M6J
+  manual_file: config/funds/seb-teknologifond-a.holdings.csv
+  as_of: 2026-06-30
+  # Aksjedelen summerte til 97,405 % i kilden. Fondet holder i tillegg en
+  # Nasdaq-100-future som netter mot en kontant-offset (netto 0,000 %) og en
+  # håndfull valutakontoer som til sammen utgjør resten. Futuren er utelatt
+  # fra beholdningslista i stedet for å prises, siden nettoeffekten av den og
+  # motposten allerede er null - se holdings-CSV-en for detaljer.
+  cash_pct: 2.595
+  equity_pct: 97.405
+
+# Navn slik Morningstar-uttrekket skriver dem -> pristicker og
+# noteringsvaluta. Gjenbrukt fra dnb-teknologi-a.yaml der samme selskap
+# forekommer der, ellers slått opp separat.
+tickers:
+  NVIDIA Corp:                              {ticker: NVDA,      currency: USD}
+  Taiwan Semiconductor Manufacturing Co Ltd: {ticker: TSM,      currency: USD}
+  Microsoft Corp:                           {ticker: MSFT,      currency: USD}
+  Applied Materials Inc:                    {ticker: AMAT,      currency: USD}
+  SK Hynix Inc:                             {ticker: "000660.KS", currency: KRW}
+  Advanced Micro Devices Inc:               {ticker: AMD,       currency: USD}
+  ASML Holding NV:                          {ticker: ASML.AS,   currency: EUR}
+  Broadcom Inc:                             {ticker: AVGO,      currency: USD}
+  Micron Technology Inc:                    {ticker: MU,        currency: USD}
+  Cisco Systems Inc:                        {ticker: CSCO,      currency: USD}
+  Alphabet Inc Class A:                     {ticker: GOOGL,     currency: USD}
+  Amazon.com Inc:                           {ticker: AMZN,      currency: USD}
+  # GDR i London, samme valg som i dnb-teknologi-a.yaml.
+  Samsung Electronics Co Ltd:               {ticker: SMSN.IL,   currency: USD}
+  Palo Alto Networks Inc:                   {ticker: PANW,      currency: USD}
+  Cadence Design Systems Inc:               {ticker: CDNS,      currency: USD}
+  ASM International NV:                     {ticker: ASM.AS,    currency: EUR}
+  Marvell Technology Inc:                   {ticker: MRVL,      currency: USD}
+  Keysight Technologies Inc:                {ticker: KEYS,      currency: USD}
+  MediaTek Inc:                             {ticker: "2454.TW", currency: TWD}
+  Apple Inc:                                {ticker: AAPL,      currency: USD}
+  Intel Corp:                               {ticker: INTC,      currency: USD}
+  ServiceNow Inc:                           {ticker: NOW,       currency: USD}
+  # London er hovednoteringen; Amsterdam og New York er tynnere sekundærlinjer.
+  RELX PLC:                                 {ticker: REL.L,     currency: GBP}
+  Netflix Inc:                              {ticker: NFLX,      currency: USD}
+  Arista Networks Inc:                      {ticker: ANET,      currency: USD}
+  Snowflake Inc:                            {ticker: SNOW,      currency: USD}
+  Veeva Systems Inc Class A:                {ticker: VEEV,      currency: USD}
+  Motorola Solutions Inc:                   {ticker: MSI,       currency: USD}
+  Vertiv Holdings Co Class A:                {ticker: VRT,       currency: USD}
+  Allegro MicroSystems Inc:                 {ticker: ALGM,      currency: USD}
+  Coherent Corp:                            {ticker: COHR,      currency: USD}
+  Scout24 SE:                               {ticker: G24.DE,    currency: EUR}
+  The Descartes Systems Group Inc:          {ticker: DSGX,      currency: USD}
+  Qualcomm Inc:                             {ticker: QCOM,      currency: USD}
+  MercadoLibre Inc:                         {ticker: MELI,      currency: USD}
+  Okta Inc Class A:                         {ticker: OKTA,      currency: USD}
+  Adyen NV:                                 {ticker: ADYEN.AS,  currency: EUR}
+  Onto Innovation Inc:                      {ticker: ONTO,      currency: USD}
+  # ADR-en i New York har fortsatt dypere likviditet enn Hongkong-linjen.
+  Alibaba Group Holding Ltd:                {ticker: BABA,      currency: USD}
+  Lumentum Holdings Inc:                    {ticker: LITE,      currency: USD}
