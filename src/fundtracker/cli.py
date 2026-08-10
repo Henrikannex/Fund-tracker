@@ -85,6 +85,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_pip.add_argument("ticker")
     p_pip.add_argument("market")
+    p_pip.add_argument(
+        "--warmup-url", default=None,
+        help="Aksjeside å besøke først, for å ta med samme sesjonskapsel som "
+        "en nettleser ville fått uten å være innlogget.",
+    )
 
     p_pyq = sub.add_parser(
         "probe-yahoo-price", help="Se hva en Yahoo Finance-kursside faktisk avslører"
@@ -194,7 +199,9 @@ def cmd_probe_price(args) -> int:
 
 
 def cmd_probe_instrument_price(args) -> int:
-    print(holdings_mod.probe_nordnet_instrument_price(args.ticker, args.market))
+    print(holdings_mod.probe_nordnet_instrument_price(
+        args.ticker, args.market, warmup_url=args.warmup_url
+    ))
     return 0
 
 

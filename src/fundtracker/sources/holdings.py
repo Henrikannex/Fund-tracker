@@ -339,19 +339,35 @@ _MARKET_ID_TEMPLATES = ["{market}:{ticker}", "{market}.{ticker}",
 _PRICE_PATH_TEMPLATES = ["/api/2/instruments/price/{id}", "/api/2/instruments/{id}"]
 
 
-def probe_nordnet_instrument_price(ticker: str, market: str) -> str:
+def probe_nordnet_instrument_price(ticker: str, market: str, warmup_url: Optional[str] = None) -> str:
     """Two-step probe: resolve ticker+market to an instrument id, then price it.
 
     Built directly from what probe_nordnet_price_page found embedded in a real
     Nordnet stock page - a lookup endpoint that should turn a market+ticker
-    into an instrument id, and a price endpoint keyed by that id. Neither call
-    has been confirmed to work without a logged-in session (the fund-holdings
-    NORDNET_ENDPOINTS above never were either), so this reports exactly what
-    each candidate returns instead of assuming success.
+    into an instrument id, and a price endpoint keyed by that id.
+
+    The first version of this probe called those endpoints cold and got 401
+    Unauthorized on every candidate. A logged-out browser Network tab got 200s
+    on the equivalent calls, which points at a plain session cookie (set by
+    visiting any page on the site) rather than an actual login - so if
+    ``warmup_url`` is given, that page is fetched first with this same
+    ``requests.Session`` before anything else, exactly like a browser would
+    pick up cookies just by loading the page.
     """
     session = _session()
     lines: list[str] = []
     instrument_id: Optional[str] = None
+
+    if warmup_url:
+        try:
+            warmup = session.get(warmup_url, timeout=TIMEOUT)
+        except requests.RequestException as exc:
+            lines.append(f"Oppvarming {warmup_url}: FEIL - {exc}")
+        else:
+            cookie_names = ", ".join(session.cookies.keys()) or "ingen"
+            lines.append(f"Oppvarming {warmup_url}: HTTP {warmup.status_code}, "
+                         f"cookies mottatt: {cookie_names}")
+        lines.append("")
 
     for template in _MARKET_ID_TEMPLATES:
         candidate = template.format(market=market, ticker=ticker)

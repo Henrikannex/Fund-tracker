@@ -28,8 +28,10 @@ on:
         description: Antall handelsdager i backtesten
         default: "250"
       url:
-        description: Nordnet-aksjeside å inspisere (kun for probe-price)
-        default: ""
+        description: >-
+          Nordnet-aksjeside å inspisere (probe-price), eller å besøke først
+          for sesjonskapsler før oppslaget (probe-instrument-price)
+        default: "https://www.nordnet.no/aksjer/kurser/microsoft-msft-xnas"
       ticker:
         description: Ticker (kun for probe-instrument-price)
         default: "MSFT"
@@ -91,9 +93,11 @@ jobs:
         run: python -m fundtracker.cli probe-price "$URL"
 
       - name: Nordnet - slå opp instrument-id og prøv å hente pris
+        # Besøker $URL først for sesjonskapsler, siden en utlogget nettleser
+        # fikk 200 på tilsvarende kall der det kalde forsøket ga 401.
         if: env.TASK == 'probe-instrument-price'
         continue-on-error: true
-        run: python -m fundtracker.cli probe-instrument-price "$TICKER" "$MARKET"
+        run: python -m fundtracker.cli probe-instrument-price "$TICKER" "$MARKET" --warmup-url "$URL"
 
       - name: Yahoo-kursside - hva avslører den om prisen
         # Sjekker både $TICKER (default MSFT, som virker fint i dag) og
