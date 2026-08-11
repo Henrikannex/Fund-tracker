@@ -37,9 +37,11 @@ holdings_source:
 # valutaendring mot EUR. Feil notering gir feil valutaledd selv når
 # kursutviklingen er tilnærmet lik.
 #
-# ADVARSEL: ingen av noteringene under er kontrollert mot Nordnets landflagg,
-# slik de tvetydige postene i dnb-teknologi-a.yaml er. De er satt ut fra
-# selskapenes primærnotering. De med flere reelle noteringer er merket under.
+# Toppen av lista er kontrollert mot landflaggene i fondets egen
+# beholdningsoversikt, 11.08.2026, ned til og med Eos Energy (1,26 %):
+# Roche sveitsisk, Novo Nordisk dansk, Schneider fransk, Napatech norsk, TSMC
+# og Samsung amerikanske. Resten er satt ut fra selskapenes primærnotering og
+# er IKKE kontrollert - de med flere reelle noteringer er merket under.
 tickers:
   # --- USA, USD. Entydige. ---
   NVIDIA Corp:                                    {ticker: NVDA,  currency: USD}
@@ -129,7 +131,10 @@ tickers:
   Ensurge Micropower ASA Class A:                 {ticker: ENSU.OL,  currency: NOK}
 
   # --- Asia. ---
-  Samsung Electronics Co Ltd:                     {ticker: "005930.KS", currency: KRW}
+  # Amerikansk flagg i beholdningsoversikten, altså GDR-en i London og ikke
+  # Seoul-noteringen. Samme valg som i de to andre fondene: dnb-teknologi-a
+  # ble verifisert mot Nordnet i juli, og SEB-lista ble bekreftet 11.08.2026.
+  Samsung Electronics Co Ltd:                     {ticker: SMSN.IL,     currency: USD}
   SK Hynix Inc:                                   {ticker: "000660.KS", currency: KRW}
   Hyundai Motor Co:                               {ticker: "005380.KS", currency: KRW}
   Rainbow Robotics Ordinary Shares:               {ticker: "277810.KQ", currency: KRW}
