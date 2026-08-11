@@ -187,6 +187,18 @@ benchmarks:
     1y: 21.62
     3y: 97.07
 
+# Fond som estimeres ved siden av dette og vises med avkastningen sin i den
+# daglige mailen. Rene sammenligningstall: de påvirker ikke estimatet for dette
+# fondet, og et fond som ikke lar seg prise mister raden sin uten å stoppe
+# mailen.
+#
+# Merk at de to har hver sin basisvaluta, EUR og SEK, mot NOK her. Mailen
+# skriver valutaen ved siden av hvert tall og sier fra om at de derfor ikke er
+# direkte sammenlignbare.
+peers:
+  - dnb-disruptive-opportunities
+  - seb-teknologifond-a
+
 # Navn som med vilje ikke prises (kontanter, derivater, pengemarked).
 # Vekten deres holdes utenfor aksjeavkastningen.
 ignore:

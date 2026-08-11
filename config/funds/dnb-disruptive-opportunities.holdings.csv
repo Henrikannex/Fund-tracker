@@ -1,0 +1,111 @@
+# Beholdningsliste for DNB Fund Disruptive Opportunities C1 EUR Acc.
+# Kilde: Morningstar (fond-ID F0000041E7), per 2026-06-30.
+#
+# VIKTIG: dette er en TOPP-99-liste, ikke hele porteføljen. Morningstar
+# returnerer maks 99 poster, så halen er avkortet. De 99 postene summerer til
+# 96,661 %, som er tallet kilden selv oppgir. Resten behandles som kontanter i
+# yaml-fila - se kommentaren ved cash_pct der.
+#
+# Navnene er Morningstars fulle klassenavn, avskrevet fra kildeuttrekket med
+# Morningstar-ID per rad. Ticker-tabellen i dnb-disruptive-opportunities.yaml
+# er nøklet på nøyaktig disse strengene.
+name,weight_pct
+NVIDIA Corp,4.325
+Micron Technology Inc,3.994
+Amazon.com Inc,2.989
+Tesla Inc,2.955
+Napatech AS,2.474
+Tempus AI Inc Class A common stock,2.455
+Samsung Electronics Co Ltd,2.281
+Johnson & Johnson,2.210
+Microsoft Corp,2.205
+JPMorgan Chase & Co,2.178
+Roche Holding AG Ordinary Shares new,2.143
+Alphabet Inc Class A,2.137
+Eli Lilly and Co,2.084
+SoFi Technologies Inc Ordinary Shares,2.066
+Moog Inc Class A,1.984
+RBC Bearings Inc,1.973
+Intuitive Surgical Inc,1.970
+Schneider Electric SE,1.901
+Novo Nordisk AS Class B,1.639
+Taiwan Semiconductor Manufacturing Co Ltd ADR,1.531
+Ouster Inc Ordinary Shares - Class A,1.466
+Aurora Innovation Inc Class A,1.374
+SanDisk Corp Ordinary Shares,1.362
+Ondas Inc,1.294
+Eos Energy Enterprises Inc Ordinary Shares Class A,1.256
+Datadog Inc Class A,1.231
+Amprius Technologies Inc,1.179
+Kraken Robotics Inc,1.174
+ABB Ltd,1.172
+Deere & Co,1.168
+Snowflake Inc Ordinary Shares,1.163
+CrowdStrike Holdings Inc Class A,1.150
+Broadcom Inc,1.129
+Vertiv Holdings Co Class A,1.120
+AST SpaceMobile Inc Ordinary Shares - Class A,1.102
+SK Hynix Inc,1.079
+Advanced Micro Devices Inc,1.042
+BE Semiconductor Industries NV,1.031
+Nordic Semiconductor ASA,1.014
+AbCellera Biologics Inc Ordinary Shares,1.012
+Aixtron SE,0.987
+Butterfly Network Inc Ordinary Shares - Class A,0.925
+Cameco Corp,0.902
+First Solar Inc,0.822
+Schaeffler AG Participating Preferred,0.807
+BlackBerry Ltd,0.792
+Lumentum Holdings Inc,0.779
+Intel Corp,0.744
+AXT Inc,0.714
+MediaTek Inc,0.657
+T1 Energy Inc,0.650
+Octave Intelligence PLC SEDR,0.608
+MercadoLibre Inc,0.572
+QuantumScape Corp Ordinary Shares - Class A,0.553
+Vishay Precision Group Inc,0.528
+Lemonade Inc Ordinary Shares,0.521
+Tower Semiconductor Ltd,0.513
+Oklo Inc Class A Shares,0.497
+Recursion Pharmaceuticals Inc Class A,0.496
+Keyence Corp,0.491
+Marvell Technology Inc,0.484
+Panasonic Holdings Corp,0.476
+Texas Instruments Inc,0.454
+One Stop Systems Inc,0.426
+Space Exploration Technologies Corp Class A,0.423
+MP Materials Corp Ordinary Shares - Class A,0.420
+Harmonic Drive Systems Inc,0.414
+Norbit ASA Ordinary Shares,0.413
+Ambarella Inc,0.413
+Daifuku Co Ltd,0.410
+poLight ASA Ordinary Shares,0.402
+IQE PLC,0.396
+Fanuc Corp,0.388
+Kawasaki Heavy Industries Ltd,0.380
+Navitas Semiconductor Corp Class A,0.372
+Ensurge Micropower ASA Class A,0.340
+TDK Corp,0.335
+Warby Parker Inc Ordinary Shares - Class A,0.320
+Hyundai Motor Co,0.317
+Allient Inc,0.286
+Rainbow Robotics Ordinary Shares,0.283
+ADS-TEC Energy PLC Ordinary Shares - Class A,0.282
+Joby Aviation Inc,0.277
+Bloom Energy Corp Class A,0.275
+Archer Aviation Inc Class A,0.267
+ASP Isotopes Inc,0.263
+Microbot Medical Inc,0.260
+Ascent Solar Technologies Inc,0.241
+Nabtesco Corp,0.238
+Serve Robotics Inc,0.210
+RoboStrategy Inc,0.208
+Qualcomm Inc,0.199
+NextEra Energy Inc,0.194
+LightPath Technologies Inc Class A,0.182
+Eaton Corp PLC,0.179
+Syntec Optics Holdings Inc Ordinary Shares - Class A,0.170
+Hyliion Holdings Corp Ordinary Shares - Class A,0.169
+Kopin Corp,0.167
+Smartoptics Group ASA Ordinary Shares,0.160

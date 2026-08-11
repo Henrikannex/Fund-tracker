@@ -68,6 +68,9 @@ class Estimate:
     fund_id: str
     fund_name: str
     date: date
+    # The fund's own base currency. The return is measured in it, so a mail
+    # putting several funds side by side has to say which is which.
+    currency: str
     return_pct: float
     equity_return_pct: float
     fx_contribution_pct: float
@@ -77,6 +80,11 @@ class Estimate:
     stale_weight_pct: float
     cash_pct: Optional[float]
     snapshot_age_days: Optional[int]
+    # Mean absolute error the last backtest measured, in percentage points,
+    # and how many days it ran over. None when the fund has never been measured
+    # - which is itself worth seeing, so it is never filled in with a guess.
+    mean_abs_error_pp: Optional[float] = None
+    accuracy_days: Optional[int] = None
     contributions: list[Contribution] = field(default_factory=list)
     unpriced: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)

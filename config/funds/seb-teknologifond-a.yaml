@@ -1,0 +1,153 @@
+id: seb-teknologifond-a
+name: SEB Teknologifond A
+currency: SEK
+
+isin: SE0000984114
+
+# Satt etter backtest, ikke etter fondets prospekt. Over 17 handelsdager
+# treffer modellen klart best uten valutaleddet: 0,484 mot 0,708 %-poeng i
+# snittfeil. Det er 20 ganger større margin enn tilsvarende test for DNB
+# Disruptive, der forskjellen var 0,011 og for liten til å avgjøre noe.
+#
+# Vinduet er kort, så dette bør etterprøves når NAV-serien vokser. Er det galt,
+# er det galt hver eneste dag i samme retning - så det er verdt å bekrefte mot
+# SEBs eget faktaark når anledningen byr seg.
+currency_hedged: true
+
+# SEBs oppgitte årlige forvaltningshonorar for andelsklasse A.
+total_cost_pct: 1.50
+trading_days_per_year: 252
+
+refresh_hint: >-
+  Hent ny liste fra Morningstar (fond-ID F0GBR04M6J). Denne lista er komplett,
+  ikke avkortet, så et ferskt uttrekk dekker hele fondet.
+
+holdings_source:
+  type: manual
+  morningstar_secid: F0GBR04M6J
+  manual_file: config/funds/seb-teknologifond-a.holdings.csv
+  as_of: 2026-06-30
+
+  # Tallene er rapportens egne totaler, ikke summen av postene i CSV-fila.
+  # Fila summerer til 97,498 % mot rapportens 97,405 %; avviket på 0,09 %-poeng
+  # ligger i avlesningen av enkeltvekter. Estimatoren normaliserer uansett over
+  # de postene den faktisk fikk priset, så avviket flytter ingenting målbart.
+  #
+  # Kontantandelen er summen av fondets fjorten valutakontoer (KRW er størst
+  # med 1,014 %). De behandles som null avkastning, som for alle andre fond -
+  # merk at det underslår en reell, om enn liten, valutaeffekt på de kontoene.
+  cash_pct: 2.595
+  equity_pct: 97.405
+
+# Faktisk NAV-historikk, som er det eneste som kan avgjøre om modellen treffer
+# for dette fondet. Uten den ville tallet stått i mailen med samme autoritet
+# som DNB Teknologis uten at noen hadde målt det mot noe.
+#
+# Serien er kort - 20 handelsdager - så den holder til å avsløre systematiske
+# feil (valgt feil notering, skjev halebehandling), ikke til å finstille noe.
+nav_source:
+  type: manual
+  manual_file: data/nav/seb-teknologifond-a.csv
+
+# Målt treffsikkerhet, fra "backtest" mot NAV-serien over. Se samme kommentar i
+# dnb-disruptive-opportunities.yaml: tallet må oppdateres når backtesten kjøres
+# på nytt, og datoen står der for at foreldelse skal synes.
+accuracy:
+  mean_abs_error_pp: 0.484
+  days: 17
+  measured: 2026-08-11
+
+# Navn slik Morningstar-uttrekket skriver dem -> pristicker og noteringsvaluta.
+#
+# Fondet er i SEK, så valutaleddet måles mot SEK, ikke NOK.
+#
+# De tvetydige postene i topp 25 er bekreftet mot landflaggene i fondets egen
+# beholdningsliste, 11.08.2026. Det gjorde kort prosess med et resonnement som
+# stod her før: at KRW-, TWD- og HKD-kontoene måtte bety at fondet eide
+# lokalnoteringene. Både Samsung og TSMC viste seg å være amerikanske linjer.
+# Valutakontoer er altså for svakt bevis alene - de sier hva fondet oppgjør i,
+# ikke hvor aksjen er notert. Postene under topp 25 er ikke sjekket mot flagg
+# og er merket der de er usikre.
+tickers:
+  # --- USA, USD. Entydige. ---
+  NVIDIA Corp:                                   {ticker: NVDA,  currency: USD}
+  Microsoft Corp:                                {ticker: MSFT,  currency: USD}
+  Applied Materials Inc:                         {ticker: AMAT,  currency: USD}
+  Advanced Micro Devices Inc:                    {ticker: AMD,   currency: USD}
+  Broadcom Inc:                                  {ticker: AVGO,  currency: USD}
+  Micron Technology Inc:                         {ticker: MU,    currency: USD}
+  Cisco Systems Inc:                             {ticker: CSCO,  currency: USD}
+  Alphabet Inc Class A:                          {ticker: GOOGL, currency: USD}
+  Amazon.com Inc:                                {ticker: AMZN,  currency: USD}
+  Palo Alto Networks Inc:                        {ticker: PANW,  currency: USD}
+  Cadence Design Systems Inc:                    {ticker: CDNS,  currency: USD}
+  Marvell Technology Inc:                        {ticker: MRVL,  currency: USD}
+  Keysight Technologies Inc:                     {ticker: KEYS,  currency: USD}
+  Apple Inc:                                     {ticker: AAPL,  currency: USD}
+  Intel Corp:                                    {ticker: INTC,  currency: USD}
+  ServiceNow Inc:                                {ticker: NOW,   currency: USD}
+  Netflix Inc:                                   {ticker: NFLX,  currency: USD}
+  Arista Networks Inc:                           {ticker: ANET,  currency: USD}
+  Snowflake Inc Ordinary Shares:                 {ticker: SNOW,  currency: USD}
+  Veeva Systems Inc Class A:                     {ticker: VEEV,  currency: USD}
+  Motorola Solutions Inc:                        {ticker: MSI,   currency: USD}
+  Vertiv Holdings Co Class A:                    {ticker: VRT,   currency: USD}
+  Coherent Corp:                                 {ticker: COHR,  currency: USD}
+  Qualcomm Inc:                                  {ticker: QCOM,  currency: USD}
+  MercadoLibre Inc:                              {ticker: MELI,  currency: USD}
+  Okta Inc Class A:                              {ticker: OKTA,  currency: USD}
+  Onto Innovation Inc:                           {ticker: ONTO,  currency: USD}
+  Lumentum Holdings Inc:                         {ticker: LITE,  currency: USD}
+  Bentley Systems Inc Ordinary Shares - Class B: {ticker: BSY,   currency: USD}
+  Tyler Technologies Inc:                        {ticker: TYL,   currency: USD}
+  Oracle Corp:                                   {ticker: ORCL,  currency: USD}
+
+  # --- Europa, primærnotering. ---
+  ASML Holding NV:                               {ticker: ASML.AS,  currency: EUR}
+  Adyen NV:                                      {ticker: ADYEN.AS, currency: EUR}
+  SAP SE:                                        {ticker: SAP.DE,   currency: EUR}
+  Scout24 SE:                                    {ticker: G24.DE,   currency: EUR}
+  # Halvlederselskapet på Nasdaq, ikke den polske netthandelen Allegro.eu.
+  # Merk at dette IKKE er avstemt: fondet fører en PLN-konto på 0,024 %, som
+  # ingen amerikansk post forklarer. Enten er kontoen en rest etter noe solgt,
+  # eller så er dette likevel ALE.WA i PLN. Posten er ~1 %, så feilen er liten
+  # uansett vei, men den er verdt å avklare mot beholdningslista.
+  Allegro MicroSystems Inc:                      {ticker: ALGM,     currency: USD}
+
+  # --- Asia. ---
+  # Bekreftet mot landflaggene i fondets egen beholdningsliste, 11.08.2026:
+  # Samsung og TSMC står med amerikansk flagg, altså GDR-en og ADR-en, ikke
+  # hjemmenoteringene. Det motsier resonnementet som stod her før - at KRW- og
+  # TWD-kontoene måtte bety lokale noteringer - så det er strøket. Kontoene har
+  # nå akkurat de eierne som trengs for å forklare dem: KRW for SK Hynix, TWD
+  # for MediaTek.
+  Samsung Electronics Co Ltd:                    {ticker: SMSN.IL,     currency: USD}
+  Taiwan Semiconductor Manufacturing Co Ltd:     {ticker: TSM,         currency: USD}
+  # SK Hynix og MediaTek står uten flagg i lista - Nordnet fører dem ikke - og
+  # ingen av dem har en likvid ADR å eie i stedet, så hjemmenoteringene er de
+  # eneste reelle kandidatene.
+  SK Hynix Inc:                                  {ticker: "000660.KS", currency: KRW}
+  MediaTek Inc:                                  {ticker: "2454.TW",   currency: TWD}
+  # HKD-kontoen på 0,354 % er grunnen til at Hongkong-noteringen er valgt
+  # framfor ADR-en (BABA, USD). Ikke bekreftet mot flagg - posten ligger
+  # lenger ned enn utsnittet som ble sjekket.
+  Alibaba Group Holding Ltd Ordinary Shares:     {ticker: "9988.HK",   currency: HKD}
+  Kioxia Holdings Corp Ordinary Shares:          {ticker: "285A.T",    currency: JPY}
+
+  # --- Tvetydige noteringer. ---
+  # Amerikansk flagg i beholdningslista, 11.08.2026, som navnets ADR-suffiks
+  # også tilsier. ADR-en er tynt omsatt for en post på 2,07 %, men flagget er
+  # entydig nok til at Amsterdam (ASM.AS, EUR) er utelukket.
+  ASM International NV ADR:                      {ticker: ASMIY,   currency: USD}
+  # Eget, ikke-amerikansk flagg i lista, altså London og ikke New York-ADR-en.
+  RELX PLC:                                      {ticker: REL.L,   currency: GBP}
+  # Descartes er kanadisk. Nasdaq-noteringen er valgt fordi den prises samtidig
+  # med resten av fondet; Toronto (DSG.TO, CAD) er alternativet, og fondets
+  # CAD-konto står på 0,000 %, noe som svakt støtter Nasdaq.
+  The Descartes Systems Group Inc:               {ticker: DSGX,    currency: USD}
+
+# Navn som med vilje ikke prises. Derivatposten og motposten er utelatt fra
+# beholdningsfila i stedet, siden de netto er null - se kommentaren der.
+ignore:
+  - Kontanter
+  - Cash

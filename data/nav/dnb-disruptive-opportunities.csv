@@ -1,0 +1,30 @@
+# Faktisk NAV for DNB Fund Disruptive Opportunities C1 EUR Acc, i EUR.
+#
+# Kilde: Investing.coms historikktabell, avlest 11.08.2026. Perioden er
+# 13.07-07.08.2026, altså 20 handelsdager.
+#
+# Serien er kontrollert mot seg selv: tabellens "Change %"-kolonne stemmer med
+# forholdet mellom nabokursene for hver eneste dag i utvalget. Det utelukker
+# ikke feil avlesning av et siffer som ville gitt samme avvik begge veier, men
+# det fanger de vanlige transkriberingsfeilene.
+date,nav
+2026-07-13,307.330
+2026-07-14,310.923
+2026-07-15,308.363
+2026-07-16,296.193
+2026-07-17,293.963
+2026-07-20,293.514
+2026-07-21,304.620
+2026-07-22,301.779
+2026-07-23,299.395
+2026-07-24,288.493
+2026-07-27,289.976
+2026-07-28,282.373
+2026-07-29,271.624
+2026-07-30,283.577
+2026-07-31,288.169
+2026-08-03,298.564
+2026-08-04,310.751
+2026-08-05,305.834
+2026-08-06,304.598
+2026-08-07,311.459
