@@ -1,0 +1,28 @@
+# Faktisk NAV for SEB Teknologifond A, i SEK.
+#
+# Kilde: Investing.coms historikktabell, avlest 11.08.2026. Perioden er
+# 13.07-07.08.2026, altså 20 handelsdager.
+#
+# Serien er kontrollert mot seg selv: tabellens "Change %"-kolonne stemmer med
+# forholdet mellom nabokursene for hver eneste dag i utvalget.
+date,nav
+2026-07-13,154.033
+2026-07-14,155.286
+2026-07-15,155.408
+2026-07-16,152.268
+2026-07-17,149.225
+2026-07-20,149.723
+2026-07-21,154.370
+2026-07-22,153.770
+2026-07-23,153.743
+2026-07-24,150.192
+2026-07-27,149.158
+2026-07-28,145.270
+2026-07-29,140.717
+2026-07-30,145.359
+2026-07-31,148.794
+2026-08-03,150.394
+2026-08-04,155.206
+2026-08-05,154.478
+2026-08-06,154.089
+2026-08-07,155.475

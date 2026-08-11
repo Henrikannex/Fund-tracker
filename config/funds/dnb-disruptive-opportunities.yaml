@@ -31,6 +31,16 @@ holdings_source:
   cash_pct: 3.339
   equity_pct: 96.661
 
+# Faktisk NAV-historikk, som er det eneste som kan avgjøre om modellen treffer
+# for dette fondet. Uten den ville tallet stått i mailen med samme autoritet
+# som DNB Teknologis uten at noen hadde målt det mot noe.
+#
+# Serien er kort - 20 handelsdager - så den holder til å avsløre systematiske
+# feil (valgt feil notering, skjev halebehandling), ikke til å finstille noe.
+nav_source:
+  type: manual
+  manual_file: data/nav/dnb-disruptive-opportunities.csv
+
 # Navn slik Morningstar-uttrekket skriver dem -> pristicker og noteringsvaluta.
 #
 # Fondet er i EUR, så hver posts avkastning er lokal kursendring GANGE
