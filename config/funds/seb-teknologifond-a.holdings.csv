@@ -4,7 +4,8 @@
 #
 # Til forskjell fra DNB Disruptive er denne lista fullstendig: aksjene summerer
 # til 97,405 %, derivatene til 0,000 % netto og kontantene til 2,595 %, altså
-# 100,000 % rapportert.
+# 100,000 % rapportert. Postene under summerer til 97,408 %, altså rapportens
+# tall pluss avrunding - lista er avstemt mot kilden.
 #
 # Derivatposten er utelatt med vilje. Rapporten fører "E-mini Nasdaq 100 Future
 # Sept 26" på 1,935 % og en "Cash Offset" på -1,935 %; det er samme eksponering
@@ -19,7 +20,7 @@ Taiwan Semiconductor Manufacturing Co Ltd,6.452
 Microsoft Corp,6.294
 Applied Materials Inc,5.906
 SK Hynix Inc,5.863
-Advanced Micro Devices Inc,5.295
+Advanced Micro Devices Inc,5.205
 ASML Holding NV,5.075
 Broadcom Inc,4.285
 Micron Technology Inc,3.507

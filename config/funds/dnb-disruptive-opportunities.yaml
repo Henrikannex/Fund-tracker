@@ -2,22 +2,21 @@ id: dnb-disruptive-opportunities
 name: DNB Disruptive Opportunities
 currency: EUR
 
-# TODO: ikke verifisert. Fyll inn fra fondets KIID/faktaark.
-isin: ""
+isin: LU2061961574
 
-# TODO: ikke verifisert. 0 betyr at estimatet leser marginalt HØYT hver dag,
-# siden honoraret er en ensidig kostnad. Utslaget er lite - 1,5 % i året er
-# 0,006 %-poeng per dag - men det er systematisk, ikke støy. Fyll inn TER-en
-# fra faktaarket så snart den er for hånden.
-total_cost_pct: 0.0
+# Ikke verifisert mot DNBs eget faktaark - dnbam.com svarte ikke - men to
+# uavhengige fondsaggregatorer oppgir 0,76 % for C1-klassen. Sjekk mot
+# faktaarket hvis tallet skal brukes til noe mer enn e-postlinjen.
+total_cost_pct: 0.76
 trading_days_per_year: 252
 
 refresh_hint: >-
-  Hent ny liste fra Morningstar (fond-ID F0000046H7). Merk at uttrekket er
+  Hent ny liste fra Morningstar (fond-ID F0000041E7). Merk at uttrekket er
   avkortet til 99 poster, så halen mangler uansett hvor ferskt det er.
 
 holdings_source:
   type: manual
+  morningstar_secid: F0000041E7
   manual_file: config/funds/dnb-disruptive-opportunities.holdings.csv
   as_of: 2026-06-30
 
@@ -102,6 +101,7 @@ tickers:
   Ascent Solar Technologies Inc:                  {ticker: ASTI,  currency: USD}
   Serve Robotics Inc:                             {ticker: SERV,  currency: USD}
   Qualcomm Inc:                                   {ticker: QCOM,  currency: USD}
+  MicroStrategy Inc:                              {ticker: MSTR,  currency: USD}
   NextEra Energy Inc:                             {ticker: NEE,   currency: USD}
   LightPath Technologies Inc Class A:             {ticker: LPTH,  currency: USD}
   Eaton Corp PLC:                                 {ticker: ETN,   currency: USD}
@@ -167,11 +167,10 @@ ignore:
   # løses, så den holdes utenfor i stedet.
   - Space Exploration Technologies Corp Class A
 
-# Fire navn er med vilje UTEN ticker over, fordi de ikke lot seg lese sikkert
+# To navn er med vilje UTEN ticker over, fordi de ikke lot seg lese sikkert
 # fra kilden:
 #   Octave Intelligence PLC SEDR   0,608 %
 #   NaNexco Corp                   0,226 %
-#   RoboStrategy Inc               0,208 %
 # De rapporteres som "uten kurs" i hvert estimat. Det er meningen: varselet
 # står til navnet er verifisert mot Morningstar og tickeren lagt inn. Samlet
-# vekt er ca. 1,0 %, så de normaliseres bort uten å flytte estimatet mye.
+# vekt er ca. 0,8 %, så de normaliseres bort uten å flytte estimatet mye.
