@@ -133,6 +133,15 @@ tickers:
   BE Semiconductor Industries NV:                 {ticker: BESI.AS,  currency: EUR}
   IQE PLC:                                        {ticker: IQE.L,    currency: GBP}
 
+  # --- Norden. ---
+  # "SEDR" i kildens navn er svenskt depåbevis (SDB), ikke et britisk selskap
+  # slik "PLC" antyder. Notert på Nasdaq Stockholm i SEK.
+  #
+  # Yahoo-symbolet er ikke bekreftet. Stockholm-depåbevis skrives der normalt
+  # med -SDB-suffiks, men enkelte ligger under bare tickeren. Svarer ikke
+  # OCTV-SDB.ST, prøv OCTV.ST - "probe-yahoo-price" avgjør det på ett kall.
+  Octave Intelligence PLC SEDR:                   {ticker: OCTV-SDB.ST, currency: SEK}
+
   # --- Norge, NOK. Fondets nordiske hale. ---
   Napatech AS:                                    {ticker: NAPA.OL,  currency: NOK}
   Nordic Semiconductor ASA:                       {ticker: NOD.OL,   currency: NOK}
