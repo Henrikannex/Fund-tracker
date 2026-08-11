@@ -33,10 +33,13 @@ holdings_source:
 #
 # Fondet er i SEK, så valutaleddet måles mot SEK, ikke NOK.
 #
-# Valutakontoene i rapporten er brukt som bevis for noteringsvalg der navnet er
-# tvetydig: fondet fører KRW-, TWD- og HKD-kontoer, noe det ikke ville gjort om
-# det eide ADR-ene i stedet for lokalnoteringene. Det er indisier, ikke bevis,
-# og de postene er merket under.
+# De tvetydige postene i topp 25 er bekreftet mot landflaggene i fondets egen
+# beholdningsliste, 11.08.2026. Det gjorde kort prosess med et resonnement som
+# stod her før: at KRW-, TWD- og HKD-kontoene måtte bety at fondet eide
+# lokalnoteringene. Både Samsung og TSMC viste seg å være amerikanske linjer.
+# Valutakontoer er altså for svakt bevis alene - de sier hva fondet oppgjør i,
+# ikke hvor aksjen er notert. Postene under topp 25 er ikke sjekket mot flagg
+# og er merket der de er usikre.
 tickers:
   # --- USA, USD. Entydige. ---
   NVIDIA Corp:                                   {ticker: NVDA,  currency: USD}
@@ -76,33 +79,39 @@ tickers:
   Adyen NV:                                      {ticker: ADYEN.AS, currency: EUR}
   SAP SE:                                        {ticker: SAP.DE,   currency: EUR}
   Scout24 SE:                                    {ticker: G24.DE,   currency: EUR}
-  # Allegro.eu er polsk og noteres i Warszawa. Fondet fører en PLN-konto
-  # (0,024 %), som er nettopp det å eie en Warszawa-notering krever.
-  Allegro EU SA Ordinary Shares:                 {ticker: ALE.WA,   currency: PLN}
+  # Halvlederselskapet på Nasdaq, ikke den polske netthandelen Allegro.eu.
+  # Merk at dette IKKE er avstemt: fondet fører en PLN-konto på 0,024 %, som
+  # ingen amerikansk post forklarer. Enten er kontoen en rest etter noe solgt,
+  # eller så er dette likevel ALE.WA i PLN. Posten er ~1 %, så feilen er liten
+  # uansett vei, men den er verdt å avklare mot beholdningslista.
+  Allegro MicroSystems Inc:                      {ticker: ALGM,     currency: USD}
 
-  # --- Asia. Lokalnoteringer, støttet av valutakontoene. ---
-  # KRW-kontoen er fondets største kontantpost (1,014 %). Til forskjell fra
-  # DNB Teknologi, som eier Samsung som GDR i London, peker det mot at dette
-  # fondet eier Seoul-noteringene.
+  # --- Asia. ---
+  # Bekreftet mot landflaggene i fondets egen beholdningsliste, 11.08.2026:
+  # Samsung og TSMC står med amerikansk flagg, altså GDR-en og ADR-en, ikke
+  # hjemmenoteringene. Det motsier resonnementet som stod her før - at KRW- og
+  # TWD-kontoene måtte bety lokale noteringer - så det er strøket. Kontoene har
+  # nå akkurat de eierne som trengs for å forklare dem: KRW for SK Hynix, TWD
+  # for MediaTek.
+  Samsung Electronics Co Ltd:                    {ticker: SMSN.IL,     currency: USD}
+  Taiwan Semiconductor Manufacturing Co Ltd:     {ticker: TSM,         currency: USD}
+  # SK Hynix og MediaTek står uten flagg i lista - Nordnet fører dem ikke - og
+  # ingen av dem har en likvid ADR å eie i stedet, så hjemmenoteringene er de
+  # eneste reelle kandidatene.
   SK Hynix Inc:                                  {ticker: "000660.KS", currency: KRW}
-  Samsung Electronics Co Ltd:                    {ticker: "005930.KS", currency: KRW}
-  # Navnet mangler "ADR"-suffikset som DNB Disruptive bruker på sin
-  # TSMC-post, og fondet fører en TWD-konto. Begge peker mot Taipei.
-  Taiwan Semiconductor Manufacturing Co Ltd:     {ticker: "2330.TW",   currency: TWD}
   MediaTek Inc:                                  {ticker: "2454.TW",   currency: TWD}
   # HKD-kontoen på 0,354 % er grunnen til at Hongkong-noteringen er valgt
-  # framfor ADR-en (BABA, USD).
+  # framfor ADR-en (BABA, USD). Ikke bekreftet mot flagg - posten ligger
+  # lenger ned enn utsnittet som ble sjekket.
   Alibaba Group Holding Ltd Ordinary Shares:     {ticker: "9988.HK",   currency: HKD}
   Kioxia Holdings Corp Ordinary Shares:          {ticker: "285A.T",    currency: JPY}
 
   # --- Tvetydige noteringer. ---
-  # Navnet sier ADR eksplisitt, så OTC-noteringen i USA er valgt. Den er tynt
-  # omsatt for en post på 2,07 %, så dette er den mest tvilsomme raden i
-  # tabellen: Amsterdam-noteringen (ASM.AS, EUR) er et like sannsynlig valg,
-  # og forskjellen er hele valutaleddet - USD mot EUR.
+  # Amerikansk flagg i beholdningslista, 11.08.2026, som navnets ADR-suffiks
+  # også tilsier. ADR-en er tynt omsatt for en post på 2,07 %, men flagget er
+  # entydig nok til at Amsterdam (ASM.AS, EUR) er utelukket.
   ASM International NV ADR:                      {ticker: ASMIY,   currency: USD}
-  # RELX har hovednotering i London og en likvid ADR i New York. Fondet fører
-  # en GBP-konto (0,004 %), men den er for liten til å avgjøre noe.
+  # Eget, ikke-amerikansk flagg i lista, altså London og ikke New York-ADR-en.
   RELX PLC:                                      {ticker: REL.L,   currency: GBP}
   # Descartes er kanadisk. Nasdaq-noteringen er valgt fordi den prises samtidig
   # med resten av fondet; Toronto (DSG.TO, CAD) er alternativet, og fondets
