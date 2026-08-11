@@ -7,9 +7,19 @@ name: Følg med på publisert kurs
 
 on:
   schedule:
-    # Kursen dukker opp i løpet av formiddagen, men når varierer. Å sjekke fire
-    # ganger koster ingenting, og jobben er stille når det ikke er noe nytt.
-    - cron: "0 6,9,12,15 * * 1-6"
+    # Kursen dukker opp i løpet av formiddagen, men når varierer. Fire daglige
+    # sjekker var gratis så lenge jobben var stille når ingenting var nytt.
+    #
+    # Det er den ikke lenger. Ingen NAV-kilde svarer en Actions-runner i dag -
+    # Investing.com gir 403, og verken Yahoo eller Morningstar fører fondets
+    # kurs - så kommandoen avslutter med feil, som den skal. Fire røde
+    # kjøringer daglig om samme kjente feil er varsling folk slutter å lese,
+    # og da er vi tilbake der vi startet.
+    #
+    # Én kjøring holder signalet i live: blir den grønn, har en kilde begynt å
+    # svare igjen. Sett den opp igjen når det skjer - forspranget på timer
+    # betyr noe først når det finnes noe å hente.
+    - cron: "0 9 * * 1-6"
   workflow_dispatch:
     inputs:
       fund:
