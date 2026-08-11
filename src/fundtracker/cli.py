@@ -358,7 +358,15 @@ def _explain_worst_day(fund, snapshot, as_of: date, span: int = 12) -> None:
 
 def cmd_watch(args) -> int:
     fund = load_fund(args.fund)
-    days = watch_mod.poll(fund, lookback_days=args.days)
+    try:
+        days = watch_mod.poll(fund, lookback_days=args.days)
+    except watch_mod.NoSourceAvailable as exc:
+        # Exit non-zero so the scheduled job goes red. The whole point of this
+        # command is to notice things; it must not be the thing that fails
+        # unnoticed.
+        print(f"AVBRUTT: {exc}", file=sys.stderr)
+        return 4
+
     if not days:
         print("Ingen nye publiserte dager.")
         return 0

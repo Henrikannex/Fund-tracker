@@ -16,14 +16,17 @@ from ..config import REPO_ROOT, FundConfig
 log = logging.getLogger(__name__)
 
 
-def load_nav(fund: FundConfig, start: date, end: date) -> pd.Series:
-    """Date-indexed NAV series. Empty if no source is configured or reachable."""
+def load_nav_remote(fund: FundConfig, start: date, end: date) -> pd.Series:
+    """The remote NAV sources only, in order of preference.
+
+    Split out from :func:`load_nav` for callers that need to tell "a source
+    answered" from "we read our own file back". Anything polling for *newly
+    published* days needs that distinction: falling back to the checked-in CSV
+    would compare the file against itself, find nothing new, and report a dead
+    source as a quiet day.
+    """
     spec = fund.nav_source or {}
     kind = (spec.get("type") or "manual").lower()
-
-    # Each source is tried in turn; the manual file is the last resort. NAV
-    # history is what makes the model checkable at all, so it is worth being
-    # stubborn about finding it.
     series = pd.Series(dtype="float64")
 
     if kind in ("yahoo", "auto"):
@@ -44,6 +47,18 @@ def load_nav(fund: FundConfig, start: date, end: date) -> pd.Series:
         if series.empty:
             log.warning("Nordnet ga ingen NAV for instrument %s", instrument_id)
 
+    return _clip(series, start, end)
+
+
+def load_nav(fund: FundConfig, start: date, end: date) -> pd.Series:
+    """Date-indexed NAV series. Empty if no source is configured or reachable."""
+    spec = fund.nav_source or {}
+
+    # Each source is tried in turn; the manual file is the last resort. NAV
+    # history is what makes the model checkable at all, so it is worth being
+    # stubborn about finding it.
+    series = load_nav_remote(fund, start, end)
+
     if series.empty:
         series = _from_manual(spec.get("manual_file"))
         if series.empty:
@@ -53,6 +68,10 @@ def load_nav(fund: FundConfig, start: date, end: date) -> pd.Series:
                 spec.get("manual_file"),
             )
 
+    return _clip(series, start, end)
+
+
+def _clip(series: pd.Series, start: date, end: date) -> pd.Series:
     if series.empty:
         return series
     mask = (series.index >= pd.Timestamp(start)) & (series.index <= pd.Timestamp(end))

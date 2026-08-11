@@ -25,6 +25,18 @@ from .sources import nav as nav_source
 log = logging.getLogger(__name__)
 
 
+class NoSourceAvailable(RuntimeError):
+    """Every NAV source refused, so we know nothing about whether days are new.
+
+    Deliberately an exception rather than an empty result. This job ran four
+    times a day for nine days against an Investing.com endpoint that answered
+    403 to every request, and reported "ingen nye kurser" each time: the run was
+    green, the warning scrolled past in a log nobody opens, and the NAV history
+    quietly stopped growing. A silent failure in a checking mechanism is worse
+    than no checking mechanism, because it also removes the reason to look.
+    """
+
+
 @dataclass
 class NewDay:
     """A published day we had not recorded before."""
@@ -49,20 +61,35 @@ def poll(fund: FundConfig, lookback_days: int = 30) -> list[NewDay]:
     a job that mails every few hours.
     """
     spec = fund.nav_source or {}
-    page = spec.get("investing_url")
-    if not page:
-        raise RuntimeError(
-            f"nav_source.investing_url er ikke satt for {fund.id}, "
-            "så det finnes ingen side å følge med på."
-        )
-
     end = date.today()
-    fetched = investing.fetch_nav(
-        page, end - timedelta(days=lookback_days), end, spec.get("investing_pair_id")
-    )
+    start = end - timedelta(days=lookback_days)
+    tried: list[str] = []
+
+    # Investing.com first, because it publishes a day earlier than the others -
+    # that lead time is the whole reason this job polls rather than waits.
+    fetched = pd.Series(dtype="float64")
+    page = spec.get("investing_url")
+    if page:
+        tried.append(page)
+        fetched = investing.fetch_nav(
+            page, start, end, spec.get("investing_pair_id")
+        )
+        if fetched.empty:
+            log.warning("Ingen kurser hentet fra %s", page)
+
+    # Then whatever else the fund has configured. Investing.com sits behind bot
+    # protection that refuses datacentre traffic outright, so on a CI runner the
+    # fallback is not the unusual path - it is the normal one.
     if fetched.empty:
-        log.warning("Ingen kurser hentet fra %s", page)
-        return []
+        tried.append("nav_source (yahoo/morningstar/nordnet)")
+        fetched = nav_source.load_nav_remote(fund, start, end)
+
+    if fetched.empty:
+        raise NoSourceAvailable(
+            f"Ingen NAV-kilde svarte for {fund.id}. Forsøkt: {', '.join(tried) or 'ingen'}. "
+            "Historikken står stille til en av dem svarer igjen, så backtesten "
+            "måler mot stadig eldre data."
+        )
 
     path = _nav_path(fund)
     known = nav_source._from_manual(str(path)) if path.exists() else pd.Series(dtype="float64")
