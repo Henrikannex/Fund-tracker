@@ -68,6 +68,9 @@ class Estimate:
     fund_id: str
     fund_name: str
     date: date
+    # The fund's own base currency. The return is measured in it, so a mail
+    # putting several funds side by side has to say which is which.
+    currency: str
     return_pct: float
     equity_return_pct: float
     fx_contribution_pct: float

@@ -122,6 +122,7 @@ def estimate_return(
         fund_id=fund.id,
         fund_name=fund.name,
         date=target,
+        currency=fund.currency,
         return_pct=return_pct,
         equity_return_pct=equity_return * 100.0,
         fx_contribution_pct=fx_component * equity_share * 100.0,

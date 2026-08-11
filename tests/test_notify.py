@@ -112,7 +112,8 @@ def test_html_disables_mobile_data_detectors():
     from fundtracker.report import to_html
 
     est = Estimate(
-        fund_id="t", fund_name="Test", date=date(2026, 7, 30), return_pct=1.0,
+        fund_id="t", fund_name="Test", date=date(2026, 7, 30), currency="NOK",
+        return_pct=1.0,
         equity_return_pct=1.0, fx_contribution_pct=0.0, fee_drag_pct=0.0,
         coverage_pct=99.0, stale_weight_pct=0.0, cash_pct=1.0, snapshot_age_days=1,
         contributions=[Contribution("Amazon.com Inc", "AMZN", "USD", 5.0,

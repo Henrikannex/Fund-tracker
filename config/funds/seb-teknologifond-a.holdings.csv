@@ -1,0 +1,61 @@
+# Komplett beholdningsliste for SEB Teknologifond A (SEK).
+# Kilde: Morningstar MCP (morningstar-fund-holdings-tool), fond-ID F0GBR04M6J.
+# Per dato 2026-06-30.
+#
+# Til forskjell fra DNB Disruptive er denne lista fullstendig: aksjene summerer
+# til 97,405 %, derivatene til 0,000 % netto og kontantene til 2,595 %, altså
+# 100,000 % rapportert.
+#
+# Derivatposten er utelatt med vilje. Rapporten fører "E-mini Nasdaq 100 Future
+# Sept 26" på 1,935 % og en "Cash Offset" på -1,935 %; det er samme eksponering
+# bokført to ganger med motsatt fortegn, og netto null. Å prise futuren uten
+# offsetten ville lagt 1,9 % Nasdaq-eksponering oppå fondet som ikke er der.
+#
+# De fire siste postene står med 0,000 % i rapporten. De er tatt med for at
+# lista skal stemme med kilden; en vekt på null bidrar eksakt null.
+name,weight_pct
+NVIDIA Corp,8.749
+Taiwan Semiconductor Manufacturing Co Ltd,6.452
+Microsoft Corp,6.294
+Applied Materials Inc,5.906
+SK Hynix Inc,5.863
+Advanced Micro Devices Inc,5.295
+ASML Holding NV,5.075
+Broadcom Inc,4.285
+Micron Technology Inc,3.507
+Cisco Systems Inc,3.175
+Alphabet Inc Class A,3.045
+Amazon.com Inc,2.944
+Samsung Electronics Co Ltd,2.810
+Palo Alto Networks Inc,2.360
+Cadence Design Systems Inc,2.149
+ASM International NV ADR,2.073
+Marvell Technology Inc,1.943
+Keysight Technologies Inc,1.873
+MediaTek Inc,1.741
+Apple Inc,1.505
+Intel Corp,1.494
+ServiceNow Inc,1.483
+RELX PLC,1.426
+Netflix Inc,1.422
+Arista Networks Inc,1.395
+Snowflake Inc Ordinary Shares,1.086
+Veeva Systems Inc Class A,1.055
+Motorola Solutions Inc,1.040
+Vertiv Holdings Co Class A,1.000
+Allegro EU SA Ordinary Shares,0.998
+Coherent Corp,0.962
+Scout24 SE,0.952
+The Descartes Systems Group Inc,0.951
+Qualcomm Inc,0.920
+MercadoLibre Inc,0.802
+Okta Inc Class A,0.801
+Adyen NV,0.654
+Onto Innovation Inc,0.565
+Alibaba Group Holding Ltd Ordinary Shares,0.503
+Lumentum Holdings Inc,0.481
+Kioxia Holdings Corp Ordinary Shares,0.464
+SAP SE,0.000
+Bentley Systems Inc Ordinary Shares - Class B,0.000
+Tyler Technologies Inc,0.000
+Oracle Corp,0.000

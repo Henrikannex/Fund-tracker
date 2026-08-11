@@ -233,10 +233,26 @@ def fx_to_base(currencies: list[str], base: str, start: date, end: date) -> pd.D
     # currency, and USD alone is most of the fund.
     frame = closing_prices(list(pairs.values()), start, end) if pairs else pd.DataFrame()
 
-    out = pd.DataFrame(index=frame.index if not frame.empty else None)
+    series: dict[str, pd.Series] = {}
+    missing: list[str] = []
     for cur, pair in pairs.items():
-        if pair in frame.columns:
-            out[cur] = frame[pair]
+        column = frame[pair] if pair in frame.columns else None
+        if column is not None and column.notna().any():
+            series[cur] = column
+        else:
+            missing.append(cur)
+
+    if missing:
+        series.update(_cross_via_usd(missing, base, start, end))
+
+    index = frame.index
+    for column in series.values():
+        index = index.union(column.index)
+
+    out = pd.DataFrame(index=index)
+    for cur in foreign:
+        if cur in series:
+            out[cur] = series[cur].reindex(index)
         else:
             log.warning("No FX series for %s -> %s", cur, base)
             out[cur] = pd.NA
@@ -245,6 +261,52 @@ def fx_to_base(currencies: list[str], base: str, start: date, end: date) -> pd.D
         if out.empty:
             out = pd.DataFrame(index=pd.DatetimeIndex([], name="Date"))
         out[base] = 1.0
+    return out
+
+
+def _cross_via_usd(
+    currencies: list[str], base: str, start: date, end: date
+) -> dict[str, pd.Series]:
+    """Build the missing ``CUR -> base`` rates out of their two USD legs.
+
+    Yahoo quotes USDKRW=X and USDSEK=X but not KRWSEK=X — the exotic crosses
+    are simply not published, and asking for one returns nothing rather than an
+    error. Without this the Korean holdings in a Swedish fund get dropped for
+    want of a quote, which is a sixth of that fund silently normalised away.
+
+    Both legs are "units of X per one USD", so the cross is their ratio. Only
+    reached when the direct pair came back empty, so a fund whose currencies
+    Yahoo does quote directly is unaffected.
+    """
+    crossable = [c for c in currencies if c != "USD"]
+    if not crossable:
+        # USD -> base failing is not something a USD detour can rescue.
+        return {}
+
+    legs = {c: f"USD{c}=X" for c in crossable}
+    base_pair = None if base == "USD" else f"USD{base}=X"
+    frame = closing_prices(
+        sorted({*legs.values(), *([base_pair] if base_pair else [])}), start, end
+    )
+
+    base_leg = None
+    if base_pair is not None:
+        if base_pair not in frame.columns or not frame[base_pair].notna().any():
+            log.warning(
+                "Ingen USD-kurs for basisvalutaen %s, så ingen kryss er mulige.", base
+            )
+            return {}
+        base_leg = frame[base_pair]
+
+    out: dict[str, pd.Series] = {}
+    for cur, pair in legs.items():
+        if pair not in frame.columns or not frame[pair].notna().any():
+            continue
+        # A zero would divide into infinity and poison the whole column, so it
+        # is treated as the missing observation it really is.
+        per_usd = frame[pair].replace(0, pd.NA)
+        out[cur] = (base_leg / per_usd) if base_leg is not None else 1.0 / per_usd
+        log.info("Krysset %s -> %s via USD.", cur, base)
     return out
 
 

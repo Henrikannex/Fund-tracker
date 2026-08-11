@@ -1,0 +1,177 @@
+id: dnb-disruptive-opportunities
+name: DNB Disruptive Opportunities
+currency: EUR
+
+# TODO: ikke verifisert. Fyll inn fra fondets KIID/faktaark.
+isin: ""
+
+# TODO: ikke verifisert. 0 betyr at estimatet leser marginalt HØYT hver dag,
+# siden honoraret er en ensidig kostnad. Utslaget er lite - 1,5 % i året er
+# 0,006 %-poeng per dag - men det er systematisk, ikke støy. Fyll inn TER-en
+# fra faktaarket så snart den er for hånden.
+total_cost_pct: 0.0
+trading_days_per_year: 252
+
+refresh_hint: >-
+  Hent ny liste fra Morningstar (fond-ID F0000046H7). Merk at uttrekket er
+  avkortet til 99 poster, så halen mangler uansett hvor ferskt det er.
+
+holdings_source:
+  type: manual
+  manual_file: config/funds/dnb-disruptive-opportunities.holdings.csv
+  as_of: 2026-06-30
+
+  # Lista er en topp-99, ikke hele porteføljen: de 97 postene summerer til
+  # 96,49 %. De resterende 3,51 % er både ekte kontanter OG den avkortede
+  # halen, og her behandles alt som kontanter, altså null avkastning.
+  #
+  # Det er en kjent, ensidig skjevhet: halen er små vekstaksjer som beveger seg
+  # mer enn snittet, ikke mindre, så på store dager vil estimatet dempe litt.
+  # Alternativet - å normalisere halen opp som om den lignet resten - overdriver
+  # motsatt vei. Med 3,5 % er begge feilene små nok til å leve med.
+  cash_pct: 3.511
+  equity_pct: 96.489
+
+# Navn slik Morningstar-uttrekket skriver dem -> pristicker og noteringsvaluta.
+#
+# Fondet er i EUR, så hver posts avkastning er lokal kursendring GANGE
+# valutaendring mot EUR. Feil notering gir feil valutaledd selv når
+# kursutviklingen er tilnærmet lik.
+#
+# ADVARSEL: ingen av noteringene under er kontrollert mot Nordnets landflagg,
+# slik de tvetydige postene i dnb-teknologi-a.yaml er. De er satt ut fra
+# selskapenes primærnotering. De med flere reelle noteringer er merket under.
+tickers:
+  # --- USA, USD. Entydige. ---
+  NVIDIA Corp:                                    {ticker: NVDA,  currency: USD}
+  Micron Technology Inc:                          {ticker: MU,    currency: USD}
+  Amazon.com Inc:                                 {ticker: AMZN,  currency: USD}
+  Tesla Inc:                                      {ticker: TSLA,  currency: USD}
+  Tempus AI Inc Class A common stock:             {ticker: TEM,   currency: USD}
+  Johnson & Johnson:                              {ticker: JNJ,   currency: USD}
+  Microsoft Corp:                                 {ticker: MSFT,  currency: USD}
+  JPMorgan Chase & Co:                            {ticker: JPM,   currency: USD}
+  Alphabet Inc Class A:                           {ticker: GOOGL, currency: USD}
+  Eli Lilly and Co:                               {ticker: LLY,   currency: USD}
+  SoFi Technologies Inc Ordinary Shares:          {ticker: SOFI,  currency: USD}
+  Moog Inc Class A:                               {ticker: MOG-A, currency: USD}
+  RBC Bearings Inc:                               {ticker: RBC,   currency: USD}
+  Intuitive Surgical Inc:                         {ticker: ISRG,  currency: USD}
+  Ouster Inc Ordinary Shares - Class A:           {ticker: OUST,  currency: USD}
+  Aurora Innovation Inc Class A:                  {ticker: AUR,   currency: USD}
+  SanDisk Corp Ordinary Shares:                   {ticker: SNDK,  currency: USD}
+  Ondas Inc:                                      {ticker: ONDS,  currency: USD}
+  Eos Energy Enterprises Inc Ordinary Shares Class A: {ticker: EOSE, currency: USD}
+  Datadog Inc Class A:                            {ticker: DDOG,  currency: USD}
+  Amprius Technologies Inc:                       {ticker: AMPX,  currency: USD}
+  Deere & Co:                                     {ticker: DE,    currency: USD}
+  Snowflake Inc Ordinary Shares:                  {ticker: SNOW,  currency: USD}
+  CrowdStrike Holdings Inc Class A:               {ticker: CRWD,  currency: USD}
+  Broadcom Inc:                                   {ticker: AVGO,  currency: USD}
+  Vertiv Holdings Co Class A:                     {ticker: VRT,   currency: USD}
+  AST SpaceMobile Inc Ordinary Shares - Class A:  {ticker: ASTS,  currency: USD}
+  Advanced Micro Devices Inc:                     {ticker: AMD,   currency: USD}
+  AbCellera Biologics Inc Ordinary Shares:        {ticker: ABCL,  currency: USD}
+  Butterfly Network Inc Ordinary Shares - Class A: {ticker: BFLY, currency: USD}
+  First Solar Inc:                                {ticker: FSLR,  currency: USD}
+  BlackBerry Ltd:                                 {ticker: BB,    currency: USD}
+  Lumentum Holdings Inc:                          {ticker: LITE,  currency: USD}
+  Intel Corp:                                     {ticker: INTC,  currency: USD}
+  AXT Inc:                                        {ticker: AXTI,  currency: USD}
+  T1 Energy Inc:                                  {ticker: TE,    currency: USD}
+  MercadoLibre Inc:                               {ticker: MELI,  currency: USD}
+  QuantumScape Corp Ordinary Shares - Class A:    {ticker: QS,    currency: USD}
+  Vishay Precision Group Inc:                     {ticker: VPG,   currency: USD}
+  Lemonade Inc Ordinary Shares:                   {ticker: LMND,  currency: USD}
+  Tower Semiconductor Ltd:                        {ticker: TSEM,  currency: USD}
+  Oklo Inc Class A Shares:                        {ticker: OKLO,  currency: USD}
+  Recursion Pharmaceuticals Inc Class A:          {ticker: RXRX,  currency: USD}
+  Marvell Technology Inc:                         {ticker: MRVL,  currency: USD}
+  Texas Instruments Inc:                          {ticker: TXN,   currency: USD}
+  One Stop Systems Inc:                           {ticker: OSS,   currency: USD}
+  MP Materials Corp Ordinary Shares - Class A:    {ticker: MP,    currency: USD}
+  Ambarella Inc:                                  {ticker: AMBA,  currency: USD}
+  Navitas Semiconductor Corp Class A:             {ticker: NVTS,  currency: USD}
+  Warby Parker Inc Ordinary Shares - Class A:     {ticker: WRBY,  currency: USD}
+  Allient Inc:                                    {ticker: ALNT,  currency: USD}
+  Joby Aviation Inc:                              {ticker: JOBY,  currency: USD}
+  Bloom Energy Corp Class A:                      {ticker: BE,    currency: USD}
+  Archer Aviation Inc Class A:                    {ticker: ACHR,  currency: USD}
+  ASP Isotopes Inc:                               {ticker: ASPI,  currency: USD}
+  Microbot Medical Inc:                           {ticker: MBOT,  currency: USD}
+  Ascent Solar Technologies Inc:                  {ticker: ASTI,  currency: USD}
+  Serve Robotics Inc:                             {ticker: SERV,  currency: USD}
+  Qualcomm Inc:                                   {ticker: QCOM,  currency: USD}
+  NextEra Energy Inc:                             {ticker: NEE,   currency: USD}
+  LightPath Technologies Inc Class A:             {ticker: LPTH,  currency: USD}
+  Eaton Corp PLC:                                 {ticker: ETN,   currency: USD}
+  Syntec Optics Holdings Inc Ordinary Shares - Class A: {ticker: OPTX, currency: USD}
+  Hyliion Holdings Corp Ordinary Shares - Class A: {ticker: HYLN, currency: USD}
+  # Navnet sier ADR eksplisitt, så New York-noteringen, ikke Taipei.
+  Taiwan Semiconductor Manufacturing Co Ltd ADR:  {ticker: TSM,   currency: USD}
+  # Irsk-registrert, men handles på Nasdaq i USD.
+  ADS-TEC Energy PLC Ordinary Shares - Class A:   {ticker: ADSE,  currency: USD}
+
+  # --- Europa, primærnotering. ---
+  Roche Holding AG Ordinary Shares new:           {ticker: ROG.SW,   currency: CHF}
+  Schneider Electric SE:                          {ticker: SU.PA,    currency: EUR}
+  Novo Nordisk AS Class B:                        {ticker: NOVO-B.CO, currency: DKK}
+  Aixtron SE:                                     {ticker: AIXA.DE,  currency: EUR}
+  Schaeffler AG Participating Preferred:          {ticker: SHA.DE,   currency: EUR}
+  BE Semiconductor Industries NV:                 {ticker: BESI.AS,  currency: EUR}
+  IQE PLC:                                        {ticker: IQE.L,    currency: GBP}
+
+  # --- Norge, NOK. Fondets nordiske hale. ---
+  Napatech AS:                                    {ticker: NAPA.OL,  currency: NOK}
+  Nordic Semiconductor ASA:                       {ticker: NOD.OL,   currency: NOK}
+  Norbit ASA Ordinary Shares:                     {ticker: NORBT.OL, currency: NOK}
+  poLight ASA Ordinary Shares:                    {ticker: PLT.OL,   currency: NOK}
+  Ensurge Micropower ASA Class A:                 {ticker: ENSU.OL,  currency: NOK}
+
+  # --- Asia. ---
+  Samsung Electronics Co Ltd:                     {ticker: "005930.KS", currency: KRW}
+  SK Hynix Inc:                                   {ticker: "000660.KS", currency: KRW}
+  Hyundai Motor Co:                               {ticker: "005380.KS", currency: KRW}
+  Rainbow Robotics Ordinary Shares:               {ticker: "277810.KQ", currency: KRW}
+  MediaTek Inc:                                   {ticker: "2454.TW",   currency: TWD}
+  Keyence Corp:                                   {ticker: "6861.T",    currency: JPY}
+  Panasonic Holdings Corp:                        {ticker: "6752.T",    currency: JPY}
+  Harmonic Drive Systems Inc:                     {ticker: "6324.T",    currency: JPY}
+  Daifuku Co Ltd:                                 {ticker: "6383.T",    currency: JPY}
+  Fanuc Corp:                                     {ticker: "6954.T",    currency: JPY}
+  Kawasaki Heavy Industries Ltd:                  {ticker: "7012.T",    currency: JPY}
+  TDK Corp:                                       {ticker: "6762.T",    currency: JPY}
+
+  # --- Tvetydige noteringer. Kursutviklingen er nesten lik uansett valg;
+  # det er valutaleddet som blir feil hvis valget er det. Bør bekreftes mot
+  # landflagget Nordnet viser, slik de seks i dnb-teknologi-a.yaml er. ---
+  #
+  # ABB er sveitsisk-svensk. Zurich er hovednoteringen, men fondet kan like
+  # gjerne eie Stockholm-noteringen (ABB.ST, SEK).
+  ABB Ltd:                                        {ticker: ABBN.SW,  currency: CHF}
+  # Cameco er kanadisk. NYSE-noteringen er valgt fordi den prises på samme
+  # klokkeslett som resten av fondet; Toronto (CCO.TO, CAD) er alternativet.
+  Cameco Corp:                                    {ticker: CCJ,      currency: USD}
+  # Kraken Robotics handles på TSX Venture i Toronto. OTC-noteringen i USA
+  # (KRKNF) er tynn, så Venture-noteringen er valgt.
+  Kraken Robotics Inc:                            {ticker: PNG.V,    currency: CAD}
+
+# Navn som med vilje ikke prises. Vekten deres holdes utenfor
+# aksjeavkastningen og normaliseres bort sammen med den avkortede halen.
+ignore:
+  - Kontanter
+  - Cash
+  # SpaceX er unotert. Det finnes ingen dagskurs å hente, ikke fordi
+  # kartleggingen mangler, men fordi selskapet ikke handles. Å la den stå som
+  # "uten kurs" ville gitt et varsel hver eneste dag om noe som aldri kan
+  # løses, så den holdes utenfor i stedet.
+  - Space Exploration Technologies Corp Class A
+
+# Fire navn er med vilje UTEN ticker over, fordi de ikke lot seg lese sikkert
+# fra kilden:
+#   Octave Intelligence PLC SEDR   0,608 %
+#   NaNexco Corp                   0,226 %
+#   RoboStrategy Inc               0,208 %
+# De rapporteres som "uten kurs" i hvert estimat. Det er meningen: varselet
+# står til navnet er verifisert mot Morningstar og tickeren lagt inn. Samlet
+# vekt er ca. 1,0 %, så de normaliseres bort uten å flytte estimatet mye.

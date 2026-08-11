@@ -257,7 +257,8 @@ def cmd_estimate(args) -> int:
             fund, snapshot, target, prices, fx, staleness, observed, args.max_stale
         ) or est
 
-    print(report.to_text(est))
+    peers = _peer_estimates(fund, est.date)
+    print(report.to_text(est, peers))
 
     if est.stale_weight_pct > args.max_stale and not args.allow_stale:
         print(
@@ -272,8 +273,35 @@ def cmd_estimate(args) -> int:
     if args.save:
         _append_estimate(fund, est)
     if args.email:
-        notify.send_email(report.subject(est), report.to_text(est), report.to_html(est))
+        notify.send_email(
+            report.subject(est), report.to_text(est, peers), report.to_html(est, peers)
+        )
     return 0
+
+
+def _peer_estimates(fund, target: date) -> list:
+    """Estimate the comparison funds for the same day.
+
+    Estimated fresh rather than read back from their logs, so every number in
+    the mail comes from the same prices on the same date — a peer read off a log
+    could silently be last Friday's.
+
+    Nothing a peer does may stop the mail. A missing ticker table, an unreachable
+    price source, a holdings file someone is mid-edit on: all of it costs us one
+    comparison row, and the fund the mail is actually about goes out regardless.
+    """
+    estimates = []
+    for peer_id in fund.peers:
+        try:
+            peer = load_fund(peer_id)
+            snapshot = holdings_mod.load_holdings(peer)
+            prices, fx, staleness, observed = _price_context(peer, snapshot, target)
+            estimates.append(
+                estimate_return(peer, snapshot, target, prices, fx, staleness, observed)
+            )
+        except Exception as exc:  # noqa: BLE001 - a peer must never block the mail
+            log.warning("Sammenligningsfondet %s ble hoppet over: %s", peer_id, exc)
+    return estimates
 
 
 def cmd_validate(args) -> int:
