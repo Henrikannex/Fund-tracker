@@ -4,4 +4,4 @@ date,estimated_pct,coverage_pct,fx_contribution_pct,snapshot_age_days,warnings
 2026-08-03,1.6877,97.65,-0.4265,38,2 beholdning(er) uten kurs: Asmodee Group AB (ASMODEE-B.ST: mangler kurs); TDC AS (ingen ticker konfigurert)
 2026-08-04,2.4911,97.65,0.4890,39,2 beholdning(er) uten kurs: Asmodee Group AB (ASMODEE-B.ST: mangler kurs); TDC AS (ingen ticker konfigurert)
 2026-08-05,-0.6822,97.65,0.0251,40,1 beholdning(er) uten kurs: Asmodee Group AB (ASMODEE-B.ST: mangler kurs)
-2026-08-07,1.7882,97.65,-0.3346,42,"1,0 % av fondet har ingen kurs for 2026-08-07 - gårsdagens er videreført, så de bidrar 0,0 % uten at det er sant. Kjørte jobben før børsen stengte? Gjelder: 7974.T | 1 beholdning(er) uten kurs: Asmodee Group AB (ASMODEE-B.ST: mangler kurs)"
+2026-08-07,2.2349,97.65,0.0477,42,1 beholdning(er) uten kurs: Asmodee Group AB (ASMODEE-B.ST: mangler kurs)
