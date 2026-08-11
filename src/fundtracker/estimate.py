@@ -131,6 +131,8 @@ def estimate_return(
         stale_weight_pct=stale_weight,
         cash_pct=snapshot.cash_pct,
         snapshot_age_days=_snapshot_age(snapshot, target),
+        mean_abs_error_pp=fund.accuracy.get("mean_abs_error_pp"),
+        accuracy_days=fund.accuracy.get("days"),
         contributions=priced,
         unpriced=unpriced,
         warnings=warnings,

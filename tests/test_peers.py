@@ -10,6 +10,15 @@ from fundtracker.models import Contribution, Estimate
 from fundtracker.report import to_html, to_text
 
 
+def flat(text: str) -> str:
+    """Collapse whitespace, so assertions test wording rather than line breaks.
+
+    The text renderer wraps at 74 columns and the HTML one does not, so a phrase
+    that reads fine in both is split in exactly one of them.
+    """
+    return " ".join(text.split())
+
+
 def make(fund_id: str, name: str, currency: str, return_pct: float) -> Estimate:
     return Estimate(
         fund_id=fund_id,
@@ -124,3 +133,43 @@ def test_peer_currency_reaches_the_estimate():
 
     est = estimate_return(fund, snapshot, date(2026, 8, 10), prices, fx)
     assert est.currency == "SEK"
+
+
+MEASURED = [
+    make("dnb-disruptive-opportunities", "DNB Disruptive Opportunities", "EUR", 0.84),
+    make("seb-teknologifond-a", "SEB Teknologifond A", "SEK", 1.21),
+]
+MEASURED[0].mean_abs_error_pp, MEASURED[0].accuracy_days = 0.421, 19
+MEASURED[1].mean_abs_error_pp, MEASURED[1].accuracy_days = 0.484, 17
+
+
+@pytest.mark.parametrize("render", [to_text, to_html])
+def test_the_measured_error_appears_beside_the_return(render):
+    out = render(PRIMARY, MEASURED)
+    assert "0,42" in out
+    assert "0,48" in out
+
+
+@pytest.mark.parametrize("render", [to_text, to_html])
+def test_the_error_bar_says_how_long_it_was_measured_over(render):
+    """A tolerance with no window behind it invites more trust than it earned."""
+    out = flat(render(PRIMARY, MEASURED))
+    assert "19 dager" in out
+    assert "17 dager" in out
+    assert "ikke en grense" in out
+
+
+@pytest.mark.parametrize("render", [to_text, to_html])
+def test_an_unmeasured_fund_is_named_rather_than_left_blank(render):
+    """A blank must not read as "no error".
+
+    DNB Teknologi has no measurement because its NAV history stops nine days
+    short, not because the model is better there. Silence beside the other two
+    funds' error bars would say the opposite.
+    """
+    assert "ikke fordi den treffer bedre" in flat(render(PRIMARY, MEASURED))
+
+
+@pytest.mark.parametrize("render", [to_text, to_html])
+def test_no_accuracy_note_when_nothing_has_been_measured(render):
+    assert "gjennomsnittlige bom" not in flat(render(PRIMARY, PEERS))

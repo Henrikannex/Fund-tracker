@@ -49,6 +49,14 @@ nav_source:
   type: manual
   manual_file: data/nav/seb-teknologifond-a.csv
 
+# Målt treffsikkerhet, fra "backtest" mot NAV-serien over. Se samme kommentar i
+# dnb-disruptive-opportunities.yaml: tallet må oppdateres når backtesten kjøres
+# på nytt, og datoen står der for at foreldelse skal synes.
+accuracy:
+  mean_abs_error_pp: 0.484
+  days: 17
+  measured: 2026-08-11
+
 # Navn slik Morningstar-uttrekket skriver dem -> pristicker og noteringsvaluta.
 #
 # Fondet er i SEK, så valutaleddet måles mot SEK, ikke NOK.

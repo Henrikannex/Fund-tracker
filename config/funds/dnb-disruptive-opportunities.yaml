@@ -41,6 +41,17 @@ nav_source:
   type: manual
   manual_file: data/nav/dnb-disruptive-opportunities.csv
 
+# Målt treffsikkerhet, fra "backtest" mot NAV-serien over. Vises ved siden av
+# avkastningen i e-posten, så tallet leses med den usikkerheten det faktisk har.
+#
+# MÅ oppdateres når backtesten kjøres på nytt. Et tall som blir stående mens
+# modellen endrer seg er verre enn ingen tall - det ser like autoritativt ut
+# dagen det slutter å stemme. Datoen under er der for at det skal synes.
+accuracy:
+  mean_abs_error_pp: 0.421
+  days: 19
+  measured: 2026-08-11
+
 # Navn slik Morningstar-uttrekket skriver dem -> pristicker og noteringsvaluta.
 #
 # Fondet er i EUR, så hver posts avkastning er lokal kursendring GANGE
@@ -133,15 +144,6 @@ tickers:
   BE Semiconductor Industries NV:                 {ticker: BESI.AS,  currency: EUR}
   IQE PLC:                                        {ticker: IQE.L,    currency: GBP}
 
-  # --- Norden. ---
-  # "SEDR" i kildens navn er svenskt depåbevis (SDB), ikke et britisk selskap
-  # slik "PLC" antyder. Notert på Nasdaq Stockholm i SEK.
-  #
-  # Yahoo-symbolet er ikke bekreftet. Stockholm-depåbevis skrives der normalt
-  # med -SDB-suffiks, men enkelte ligger under bare tickeren. Svarer ikke
-  # OCTV-SDB.ST, prøv OCTV.ST - "probe-yahoo-price" avgjør det på ett kall.
-  Octave Intelligence PLC SEDR:                   {ticker: OCTV-SDB.ST, currency: SEK}
-
   # --- Norge, NOK. Fondets nordiske hale. ---
   Napatech AS:                                    {ticker: NAPA.OL,  currency: NOK}
   Nordic Semiconductor ASA:                       {ticker: NOD.OL,   currency: NOK}
@@ -200,11 +202,21 @@ ignore:
 #   Octave Intelligence PLC SEDR   0,608 %   Morningstar-ID 0P0002P6QH
 #   RoboStrategy Inc               0,208 %   Morningstar-ID F00002899H
 #
-# Den første er en aksje (0P-prefiks) som ikke er identifisert ennå. Den andre
-# har F-prefiks, altså et FOND i Morningstars nummerering, ikke en aksje - så
-# det er trolig en fondsandel eller ETF, og den skal kanskje behandles som en
-# egen beholdning med sin egen kurs framfor en enkeltaksje. Slå opp ID-ene før
-# noen fyller inn en ticker på slump.
+# Octave er IDENTIFISERT, men står likevel uten ticker. "SEDR" er svenskt
+# depåbevis (SDB): selskapet handles som "OCTV SDB" på Nasdaq Stockholm, rundt
+# 180 SEK. To Yahoo-symboler er prøvd og begge forkastet, 11.08.2026:
+#
+#   OCTV-SDB.ST   HTTP 404, finnes ikke
+#   OCTV.ST       HTTP 200, men kurs 19,40 mot Stockholm-kursens 180,30, og
+#                 dagsendring -5,5 % mot -1,10 %. Et annet instrument.
+#
+# Den siste er verdt å merke seg: den SVARER. Hadde den blitt stående, ville
+# fondet blitt priset mot feil selskap uten at noe varsel gikk - en post som
+# ser priset ut er farligere enn en som mangler. Finn riktig symbol før noen
+# fyller inn noe her igjen.
+#
+# RoboStrategy har F-prefiks, altså et FOND i Morningstars nummerering, ikke en
+# aksje - trolig en fondsandel eller ETF. Slå opp ID-en før den kartlegges.
 #
 # Begge rapporteres som "uten kurs" i hvert estimat. Det er meningen: varselet
 # står til navnene er verifisert. Samlet vekt er 0,8 %, så de normaliseres bort
