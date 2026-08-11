@@ -81,6 +81,26 @@ def test_an_all_nan_direct_pair_still_falls_through_to_the_cross(monkeypatch):
     assert out["KRW"].tolist() == pytest.approx([10.0 / 1300.0, 10.0 / 1300.0])
 
 
+def test_a_pair_missing_only_todays_rate_is_topped_up_from_the_cross(monkeypatch):
+    """The failure seen in production: history present, today's rate absent.
+
+    PLNSEK=X came back with rows for every earlier day and nothing for the day
+    being priced. Checking only "did this column answer at all" accepts it, and
+    the holding keeps yesterday's rate — a currency leg of 0,00 % that is not
+    true and does not announce itself.
+    """
+    monkeypatch.setattr(price_source, "closing_prices", fake_closing_prices({
+        "PLNSEK=X": [2.5, float("nan")],
+        "USDPLN=X": [4.0, 4.0],
+        "USDSEK=X": [10.0, 10.0],
+    }))
+    out = price_source.fx_to_base(["PLN"], "SEK", date(2026, 8, 1), date(2026, 8, 10))
+
+    # The direct quote survives where it exists; only the hole is filled.
+    assert out["PLN"].iloc[0] == pytest.approx(2.5)
+    assert out["PLN"].iloc[1] == pytest.approx(10.0 / 4.0)
+
+
 def test_currency_stays_missing_when_neither_route_answers(monkeypatch):
     """Better an honest gap than a fabricated rate; the estimator warns on it."""
     monkeypatch.setattr(price_source, "closing_prices", fake_closing_prices({

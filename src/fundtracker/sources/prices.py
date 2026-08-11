@@ -235,15 +235,25 @@ def fx_to_base(currencies: list[str], base: str, start: date, end: date) -> pd.D
 
     series: dict[str, pd.Series] = {}
     missing: list[str] = []
+    latest = frame.index.max() if not frame.empty else None
     for cur, pair in pairs.items():
         column = frame[pair] if pair in frame.columns else None
-        if column is not None and column.notna().any():
-            series[cur] = column
-        else:
+        if column is None or not column.notna().any():
+            missing.append(cur)
+            continue
+        series[cur] = column
+        # A pair that answers for history but not for the day being priced is
+        # the more common failure, and the more dangerous one: the column looks
+        # usable, so the holding silently keeps yesterday's rate and its
+        # currency leg reads 0,00 % without anything saying so.
+        if latest is not None and pd.isna(column.get(latest, pd.NA)):
             missing.append(cur)
 
     if missing:
-        series.update(_cross_via_usd(missing, base, start, end))
+        for cur, crossed in _cross_via_usd(missing, base, start, end).items():
+            # combine_first, not assignment: where the direct pair did answer it
+            # is the better number, and the cross only fills its holes.
+            series[cur] = series[cur].combine_first(crossed) if cur in series else crossed
 
     index = frame.index
     for column in series.values():
