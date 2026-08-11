@@ -4,6 +4,16 @@ currency: SEK
 
 isin: SE0000984114
 
+# Satt etter backtest, ikke etter fondets prospekt. Over 17 handelsdager
+# treffer modellen klart best uten valutaleddet: 0,484 mot 0,708 %-poeng i
+# snittfeil. Det er 20 ganger større margin enn tilsvarende test for DNB
+# Disruptive, der forskjellen var 0,011 og for liten til å avgjøre noe.
+#
+# Vinduet er kort, så dette bør etterprøves når NAV-serien vokser. Er det galt,
+# er det galt hver eneste dag i samme retning - så det er verdt å bekrefte mot
+# SEBs eget faktaark når anledningen byr seg.
+currency_hedged: true
+
 # SEBs oppgitte årlige forvaltningshonorar for andelsklasse A.
 total_cost_pct: 1.50
 trading_days_per_year: 252
