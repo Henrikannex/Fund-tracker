@@ -123,6 +123,51 @@ def test_contributions_sum_to_the_gross_return():
     assert total == pytest.approx(est.return_pct + est.fee_drag_pct)
 
 
+def test_summary_lines_add_up_to_the_headline():
+    """The composition block is arithmetic, not decoration.
+
+    The mail prints these lines under each other, so a reader adds them up. For
+    a while they did not add up: the equity line was gross of cash, the headline
+    was net of it, and the 1,65 % cash weight went unmentioned in between.
+    """
+    fund = make_fund()
+    snapshot = make_snapshot([("Alpha", 60.0), ("Beta", 40.0)], cash_pct=5.0)
+    prices, fx = frames(alpha=(100.0, 103.0), beta=(50.0, 49.0), usdnok=(10.0, 10.2))
+
+    est = estimate_return(fund, snapshot, date(2026, 7, 30), prices, fx)
+
+    assert est.cash_drag_pct < 0  # equities rose, so idle cash cost the fund
+    assert est.return_pct == pytest.approx(
+        est.equity_return_pct + est.cash_drag_pct - est.fee_drag_pct
+    )
+
+
+def test_cash_drag_is_zero_without_cash():
+    fund = make_fund()
+    snapshot = make_snapshot([("Beta", 100.0)])
+    prices, fx = frames(beta=(50.0, 51.0))
+
+    est = estimate_return(fund, snapshot, date(2026, 7, 30), prices, fx)
+
+    assert est.cash_drag_pct == pytest.approx(0.0)
+
+
+def test_fx_effect_is_a_slice_of_the_equity_line_not_a_separate_term():
+    """"Herav valutaeffekt" has to be measured on the line it is "herav" of.
+
+    With cash in the fund the two used to sit on different bases, so the FX
+    number was quietly smaller than the currency part of the line above it.
+    """
+    fund = make_fund()
+    snapshot = make_snapshot([("Alpha", 90.0)], cash_pct=10.0)
+    prices, fx = frames(alpha=(100.0, 110.0), usdnok=(10.0, 10.5))
+
+    est = estimate_return(fund, snapshot, date(2026, 7, 30), prices, fx)
+
+    assert est.equity_return_pct == pytest.approx(15.5)
+    assert est.fx_contribution_pct == pytest.approx(5.0)  # not 5.0 * 0.9
+
+
 def test_ignored_names_are_excluded_not_priced():
     fund = make_fund()
     snapshot = make_snapshot([("Beta", 95.0), ("Kontanter", 5.0)])

@@ -28,6 +28,7 @@ def make(fund_id: str, name: str, currency: str, return_pct: float) -> Estimate:
         return_pct=return_pct,
         equity_return_pct=return_pct,
         fx_contribution_pct=0.0,
+        cash_drag_pct=0.0,
         fee_drag_pct=0.0,
         coverage_pct=99.0,
         stale_weight_pct=0.0,
