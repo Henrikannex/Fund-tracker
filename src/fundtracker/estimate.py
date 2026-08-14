@@ -112,7 +112,13 @@ def estimate_return(
         c.contribution_pct = (c.weight_pct / covered) * equity_share * c.nok_return * 100.0
 
     fee = fund.daily_fee_drag
-    return_pct = equity_return * equity_share * 100.0 - fee
+    # Written as three terms that add up rather than as one product, because the
+    # mail shows them as three lines and they have to reconcile there. Cash is
+    # the term that used to be invisible: the equity line was gross of it, the
+    # headline was net of it, and nothing in between explained the gap.
+    equity_pct = equity_return * 100.0
+    cash_drag = equity_pct * (equity_share - 1.0)
+    return_pct = equity_pct + cash_drag - fee
     stale_weight = sum(c.weight_pct for c in priced if c.carried_forward)
 
     _collect_warnings(warnings, snapshot, covered, unpriced, priced, target,
@@ -124,8 +130,12 @@ def estimate_return(
         date=target,
         currency=fund.currency,
         return_pct=return_pct,
-        equity_return_pct=equity_return * 100.0,
-        fx_contribution_pct=fx_component * equity_share * 100.0,
+        equity_return_pct=equity_pct,
+        # On the same basis as the equity line it is a slice of. Scaling this
+        # one by the equity share and the line above it by nothing made the
+        # "of which" claim false by exactly the cash weight.
+        fx_contribution_pct=fx_component * 100.0,
+        cash_drag_pct=cash_drag,
         fee_drag_pct=fee,
         coverage_pct=covered,
         stale_weight_pct=stale_weight,

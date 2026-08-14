@@ -72,8 +72,21 @@ class Estimate:
     # putting several funds side by side has to say which is which.
     currency: str
     return_pct: float
+    # The three lines below decompose ``return_pct`` exactly:
+    #
+    #     return_pct = equity_return_pct + cash_drag_pct - fee_drag_pct
+    #
+    # so a reader can add up what the mail shows and land on the headline.
+    # ``equity_return_pct`` is the return of the priced holdings themselves, in
+    # the fund's base currency and before cash is mixed in; ``fx_contribution_pct``
+    # is the part of that return which came from currency, measured on the same
+    # basis, so it is a slice of the equity line rather than a term of its own.
     equity_return_pct: float
     fx_contribution_pct: float
+    # What the cash holding cost (or saved) the fund: cash earns nothing, so on
+    # an up day it dilutes. Negative when the equities rose, positive when they
+    # fell. Zero when the snapshot reports no cash.
+    cash_drag_pct: float
     fee_drag_pct: float
     coverage_pct: float
     # Share of the fund whose price on the day was carried forward, not quoted.

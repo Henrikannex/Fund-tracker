@@ -88,8 +88,13 @@ def to_text(est: Estimate, peers: list[Estimate] | None = None) -> str:
         "",
         "Sammensetning:",
         _summary_line(f"Aksjeavkastning i {est.currency}", _pct(est.equity_return_pct)),
-        _summary_line("Herav valutaeffekt", _pct(est.fx_contribution_pct)),
+        _summary_line("  herav valutaeffekt", _pct(est.fx_contribution_pct)),
+    ]
+    if est.cash_drag_pct:
+        lines.append(_summary_line(_cash_label(est), _pct(est.cash_drag_pct)))
+    lines += [
         _summary_line("Forvaltningshonorar", _pct(-est.fee_drag_pct, 4)),
+        _summary_line("= Estimert avkastning", _pct(est.return_pct)),
         "",
         f"Dekning: {_num(est.coverage_pct)} % av fondet"
         + (f", {_num(est.stale_weight_pct)} % uten dagskurs"
@@ -122,6 +127,18 @@ def to_text(est: Estimate, peers: list[Estimate] | None = None) -> str:
 def _summary_line(label: str, value: str) -> str:
     """One row of the composition block, with the values in a fixed column."""
     return f"  {label:<24}{value}"
+
+
+def _cash_label(est: Estimate) -> str:
+    """Name the cash line, with the weight behind it when we know it.
+
+    The drag is the interesting number, but on its own it looks arbitrary. The
+    weight is what makes it checkable: 1,7 % of the fund sitting still on a
+    +1,95 % day costs about three hundredths of a point, and now you can see why.
+    """
+    if est.cash_pct is None:
+        return "Kontanter"
+    return f"Kontanter ({_num(est.cash_pct)} %)"
 
 
 def _peer_line(est: Estimate) -> str:
@@ -249,6 +266,16 @@ def to_html(est: Estimate, peers: list[Estimate] | None = None) -> str:
     if est.snapshot_age_days is not None:
         meta += f" · beholdninger {est.snapshot_age_days} dager gamle"
 
+    # Left out when there is no cash to explain, rather than printed as a zero:
+    # a fund with no reported cash has nothing to reconcile there.
+    cash_row = ""
+    if est.cash_drag_pct:
+        cash_row = (
+            f"<tr><td style='padding:3px 20px 3px 0;color:#666'>"
+            f"{escape(_cash_label(est))}</td>"
+            f"<td style='text-align:right;color:#666'>{_pct(est.cash_drag_pct)}</td></tr>"
+        )
+
     warnings_html = ""
     if est.warnings:
         items = "".join(
@@ -290,10 +317,14 @@ def to_html(est: Estimate, peers: list[Estimate] | None = None) -> str:
   <table style="margin-top:24px;font-size:14px;border-collapse:collapse">
     <tr><td style="padding:3px 20px 3px 0;color:#666">Aksjeavkastning i {escape(est.currency)}</td>
         <td style="text-align:right">{_pct(est.equity_return_pct)}</td></tr>
-    <tr><td style="padding:3px 20px 3px 0;color:#666">Herav valutaeffekt</td>
-        <td style="text-align:right;color:#666">{_pct(est.fx_contribution_pct)}</td></tr>
+    <tr><td style="padding:3px 20px 3px 24px;color:#888;font-size:13px">herav valutaeffekt</td>
+        <td style="text-align:right;color:#888;font-size:13px">{_pct(est.fx_contribution_pct)}</td></tr>
+    {cash_row}
     <tr><td style="padding:3px 20px 3px 0;color:#666">Forvaltningshonorar</td>
         <td style="text-align:right;color:#666">{_pct(-est.fee_drag_pct, 4)}</td></tr>
+    <tr><td style="padding:6px 20px 3px 0;border-top:1px solid #ddd">Estimert avkastning</td>
+        <td style="padding-top:6px;text-align:right;font-weight:600;border-top:1px solid #ddd">
+        {_pct(est.return_pct)}</td></tr>
   </table>
 
   <div style="margin-top:20px;font-size:12px;color:#888">{escape(meta)}</div>

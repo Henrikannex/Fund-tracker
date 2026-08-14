@@ -439,6 +439,11 @@ ESTIMATE_COLUMNS = [
     "date", "estimated_pct", "coverage_pct", "fx_contribution_pct",
     "snapshot_age_days", "warnings",
 ]
+# The column name is kept for continuity with the rows already logged, but from
+# 2026-08-14 the value is the currency part of the equity return itself, not of
+# the fund return. The two differ by the cash weight - a couple of hundredths of
+# a point - so the series stays comparable, and the newer rows are the ones that
+# match what the mail shows.
 
 
 def _append_estimate(fund, est) -> None:
