@@ -1,226 +1,84 @@
 # Fund tracker
 
-Estimerer daglig avkastning for fond som ikke publiserer den i tide.
-
-Nordnet viser ikke gårsdagens avkastning for DNB Teknologi A før langt ut på
-dagen. Men Nordnet viser *hva fondet eier*. Kombinerer man beholdningene med
-sluttkursene til de underliggende aksjene, kan man regne seg fram til
-avkastningen selv — og ha tallet klart kl. 22:15 samme kveld, et døgn før
-fondet publiserer det.
-
-## Modellen
+Estimates a fund's daily return the evening before the fund publishes it. Nordnet shows
+yesterday's return late the following day, but it does show the holdings. Pricing those
+holdings in their own listing currencies gives the number about 24 hours earlier.
 
 ```
-avkastning = gjennomsnittlig avkastning i NOK for beholdningene
-             × (1 − kontantandel)
-             − daglig forvaltningshonorar
+return = mean NOK return of priced holdings × (1 − cash weight) − daily management fee
+
+per holding: (price_t / price_t−1) × (fx_t / fx_t−1) − 1
 ```
 
-For hver beholdning:
+The FX term matters as much as the price term. The fund reports in NOK but owns Microsoft
+in USD, Adyen in EUR, Ericsson in SEK and Sony in JPY, and USDNOK can move 0.7% in a day.
+Holdings are priced on a specific listing, not a ticker: STMicroelectronics in Paris and
+in New York track each other closely but carry different currency exposure.
 
-```
-avkastning_NOK = (kurs_i_dag / kurs_i_går) × (valutakurs_i_dag / valutakurs_i_går) − 1
-```
+## Accuracy
 
-Valutaleddet er ikke pynt. Fondet er i NOK, men eier Microsoft i USD, ADYEN i
-EUR, Ericsson i SEK og Sony i JPY. USDNOK kan bevege seg 0,7 % på en dag — mer
-enn de fleste aksjedager. Utelater man valuta, måler man feil ting.
+Measured against 55 days of published NAV, May to July 2026:
 
-## Kurser som ikke finnes ennå
+| Measure | Result |
+|---|---|
+| Mean absolute error | 0.63 pp |
+| Systematic bias | −0.15 pp |
+| Correct direction | 87.3% of days |
+| Correlation with NAV | 0.842 |
 
-Børser stenger på ulike tidspunkt, så en kurstabell har hull. Hullene fylles
-med forrige kjente kurs, fordi det er nettopp det fondet gjør: er Tokyo stengt,
-står Sony stille i NAV-en også.
+Close enough to know how the day went, not close enough to trade on.
 
-Men det er også slik en prognose lyver. Kjører man før amerikansk stengetid,
-får hver amerikansk post gårsdagens kurs videreført og bidrar pent 0,00 % — og
-overskriften ser helt normal ut. Derfor holder systemet rede på hvilke kurser
-som var *ekte observasjoner*, rapporterer hvor stor andel av fondet som ikke
-var det, og **nekter å sende estimatet** hvis andelen overstiger `--max-stale`
-(standard 5 %).
+## Stale prices
 
-## Hva modellen ikke vet
+Exchanges close at different times, so the price table has gaps. Gaps are carried forward,
+because that is what the fund does in its own NAV. Run before the US close, though, and
+every US position contributes 0.00% while the headline number still looks normal. The
+system tracks which prices were real observations, reports the share of the portfolio that
+was not, and withholds the estimate when that share exceeds 5%. Holdings without a mapped
+ticker are reported rather than dropped.
 
-Tre antakelser, som er hele feilkilden:
+## What the backtest settled
 
-1. **Beholdningene vi ikke ser oppfører seg som de vi ser.** Vektene
-   normaliseres over det vi klarer å prise. `coverage_pct` i hvert estimat
-   sier hvor stor del av fondet det faktisk er.
-2. **Kontanter gir null avkastning på én dag.** Uproblematisk.
-3. **Forvalter har ikke handlet siden snapshotet.** Umulig å vite utenfra, og
-   grunnen til at estimatet forfaller etter hvert som beholdningsdataene eldes.
+The backtest groups error by the age of the holdings snapshot, which separates model error
+from portfolio drift. Four assumptions were resolved with data rather than argument:
 
-`backtest` finnes for å tallfeste akkurat dette — se under.
+- **Pricing day.** Same day. A one-day lag gives 1.69 pp error and negative correlation.
+- **FX hedging.** Inconclusive: 0.632 pp with the FX term, 0.612 pp without. The term stays,
+  which is correct for an unhedged NOK fund.
+- **Coverage.** 25 holdings at 79.8% of the fund gave 0.632 pp; all 63 at 98.5% gave 0.639 pp.
+  The missing tail was never the explanation for the error.
+- **Refresh rate.** Bias grows about 0.05 pp per month of snapshot age, so refreshing
+  holdings twice a year is enough.
 
-## Bruk
+## The code
+
+5,479 lines of Python across 16 modules, with 9 test suites and 90 tests. Five source
+integrations: manual CSV holdings, Morningstar, Nordnet, Yahoo for prices and FX, and NAV
+history. Four GitHub Actions workflows cover the scheduled estimate, NAV watch,
+diagnostics and tests.
+
+The daily job runs twice on weekdays so it lands at 22:15 Oslo time under both US
+daylight-saving regimes; the second run exits if the day is already logged. One YAML file
+per fund, with the listing currency required for every ticker.
 
 ```bash
-pip install -r requirements.txt
-export PYTHONPATH=src
+pip install -r requirements.txt && export PYTHONPATH=src
 
-python -m fundtracker.cli funds                        # list fond
-python -m fundtracker.cli resolve  dnb-teknologi-a     # hvilke navn mangler ticker
-python -m fundtracker.cli snapshot dnb-teknologi-a     # hent og lagre beholdninger
-python -m fundtracker.cli estimate dnb-teknologi-a     # dagens estimat
+python -m fundtracker.cli snapshot dnb-teknologi-a
+python -m fundtracker.cli estimate dnb-teknologi-a
 python -m fundtracker.cli backtest dnb-teknologi-a --days 250
-python -m fundtracker.cli probe    dnb-teknologi-a     # test Nordnet-endepunkter
 ```
 
-### Backtesten
+## Limits
 
-Målet er ikke bare «hvor mye bommer modellen», men **hvor fort et
-beholdnings-snapshot blir dårlig**. Vi har bare dagens sammensetning, så når
-den kjøres bakover i tid blandes modellfeil og porteføljedrift med vilje.
-Grupperer man feilen etter hvor langt tilbake dagen ligger, skiller de to seg:
+Three assumptions carry the error: the unpriced tail behaves like the priced holdings,
+cash returns nothing over a day, and the manager has not traded since the snapshot. Every
+estimate reports `coverage_pct` so the first one is visible. A correlation of 0.842 leaves
+roughly 30% of daily variation unexplained.
 
-- flat kurve → ferskhet betyr lite, det holder å scrape månedlig
-- stigende kurve → hellingen sier hvor ofte det er verdt å hente nye data
+A per-holding regression intended to identify mis-stated weights was built and then
+removed: technology names move together, and 57 observations cannot identify 63 weights,
+so it returned implied weights below zero.
 
-## Hvor vektene kan komme fra
-
-Kartlagt, ikke verifisert — ingen av disse kunne testes fra utviklingsmiljøet.
-Kjør `probe` for å se hva som faktisk svarer.
-
-| Kilde | Ferskhet | Komplett | Merknad |
-|---|---|---|---|
-| **Manuell CSV** | så fersk du gjør den | ja | Virker i dag. Endres månedlig, så ~2 min i måneden. |
-| **Morningstar SAL** | kilden Nordnet lisensierer fra | topp-N gratis | Gir ticker + valuta per post. Udokumentert. `secid F0GBR04NGU` |
-| **Nordnet** | Morningstar + eget etterslep | topp-N | Ingen dokumentert API. Cloudflare foran. |
-| **DNB månedsrapport** | ~5-10 virkedager | ja | Trolig PDF. Mest arbeid, ferskest. |
-| **DNB årsrapport** | halvårlig | ja | For treg til drift, men fasit på *hvilken notering* fondet eier. |
-| **Kommersielle API-er** | daglig | ja | FMP, Finnworlds m.fl. Koster penger for et fond. |
-
-Poenget som gjør valget lett: **beholdningene endres bare månedlig**. Et
-snapshot fra i går og et fra forrige måned gir nesten samme dagsestimat, fordi
-det er *sammensetningen* som teller og DNB Teknologi handler lite. Ferskhet er
-den fjerde største feilkilden, etter valuta, manglende hale og usynlige
-handler. Derfor er manuell CSV startpunktet, og `auto` finnes for den dagen
-`probe` viser at en fjernkilde faktisk holder.
-
-### Alternativet vi ikke valgte
-
-Man trenger strengt tatt ikke beholdningene i det hele tatt. Regresjon av
-fondets NAV-historikk mot noen få likvide ETF-er og USDNOK gir en
-replikerende portefølje som oppdaterer seg selv og fanger opp forvalters
-handler uten å se dem. Ulempen er at den ikke kan si *hvorfor* — ingen
-«Microsoft trakk opp i dag». Verdt å ha som kryssjekk hvis backtesten skuffer.
-
-## Oppsett
-
-### Fondskonfigurasjon
-
-Ett fond = én YAML-fil i `config/funds/`. Se
-[`dnb-teknologi-a.yaml`](config/funds/dnb-teknologi-a.yaml). Nytt fond legges
-til ved å kopiere fila og bytte ISIN, kostnad og ticker-tabell.
-
-Ticker-tabellen må oppgi **noteringsvaluta**, ikke bare ticker. Et selskap med
-flere noteringer — STMicroelectronics i Paris (EUR) og New York (USD) — har
-nesten identisk kursutvikling, men helt ulikt valutaledd. Velger man feil
-notering, blir estimatet systematisk skjevt.
-
-Et navn uten ticker blir *rapportert*, aldri stille droppet.
-
-### E-post
-
-Sendes via SMTP med disse miljøvariablene, lagt inn som GitHub-secrets:
-
-| Secret | Verdi |
-|---|---|
-| `SMTP_USER` | Gmail-adressen som sender |
-| `SMTP_PASSWORD` | Gmail **app-passord** (ikke kontopassordet) |
-| `MAIL_TO` | mottaker(e), standard er `SMTP_USER`. Flere skilles med komma |
-| `MAIL_BCC` | valgfritt, mottakere som ikke ser hverandre |
-| `SMTP_HOST` | valgfritt, standard `smtp.gmail.com` |
-| `SMTP_PORT` | valgfritt, standard `587` |
-
-App-passord krever at 2FA er slått på for Google-kontoen; det lages under
-Google-konto → Sikkerhet → App-passord.
-
-### Kjøreplan
-
-`.github/workflows/daily-estimate.yml` kjører 20:15 og 21:15 UTC på hverdager.
-GitHub-cron er alltid UTC, så begge kjører hele året for å treffe kl. 22:15
-norsk tid uansett om USA har sommer- eller vintertid. Den andre kjøringen
-avslutter uten å gjøre noe hvis dagens estimat allerede er logget.
-
-`.github/workflows/diagnostics.yml` kjøres manuelt og er verktøyet for å teste
-scraping og backtest mot ekte nett.
-
-## Hvor godt treffer den
-
-Målt mot 55 dager med faktisk NAV, mai til juli 2026:
-
-| | |
-|---|---|
-| Gjennomsnittlig feil | 0,63 %-poeng |
-| Systematisk skjevhet | −0,15 %-poeng |
-| Traff riktig retning | 87,3 % |
-| Korrelasjon med NAV | 0,842 |
-
-Retningen stemmer sju av åtte dager, og bommen er typisk et halvt til ett
-prosentpoeng. Godt nok til å vite hvordan dagen gikk; ikke godt nok til å
-handle på.
-
-Tre spørsmål er avgjort av disse dataene i stedet for av antakelser:
-
-**Når prises fondet?** Samme dag. Forsinkelse på én dag gir 1,69 %-poeng feil
-og negativ korrelasjon, mot 0,63 og 0,842 for samme dag. Stopptiden på 09:00
-som Nordnet oppgir er ordrefristen, ikke verdsettelsestidspunktet — så
-kveldsestimatet gjelder dagen det kjøres.
-
-**Er fondet valutasikret?** Kan ikke avgjøres. Med valuta gir 0,632 %-poeng
-feil, uten gir 0,612 — forskjellen er for liten til å bety noe. Valutaleddet
-beholdes, som er det riktige for et usikret fond i kroner.
-
-**Hjelper det å se hele porteføljen?** Nei. Med de 25 største postene, altså
-79,8 % av fondet, var snittfeilen 0,632 %-poeng. Med alle 63 postene og 98,5 %
-dekning ble den 0,639. De manglende beholdningene var aldri forklaringen på
-avviket, og den antakelsen kostet flere runder å avlive.
-
-**Hvor ofte må beholdningene oppdateres?** Skjevheten vokser jevnt med
-alderen på snapshotet:
-
-| Snapshot-alder | Skjevhet |
-|---|---|
-| 36–58 dager | −0,01 %-poeng |
-| 58–79 dager | −0,13 |
-| 79–101 dager | −0,15 |
-| 101–121 dager | −0,19 |
-
-Rundt 0,05 %-poeng per måned med foreldelse. Snittfeilen henger ikke like
-tydelig sammen med alderen, så dag-til-dag-støyen kommer fra noe annet — men
-retningen på skjevheten er entydig, og den taler for å hente nye beholdninger
-et par ganger i året.
-
-### Et forsøk som ikke virket
-
-En periode fantes det et verktøy som skulle utlede hvilke vekter som var feil,
-ved å regressere dagsfeilen på hver enkelt posts avkastning. Tanken var at en
-post vi bærer for mye av gjør estimatet for høyt nettopp de dagene den steg.
-
-Det ga umulige svar — antydede vekter under null. Årsaken er at
-teknologiaksjer beveger seg sammen, så en enkeltregresjon per aksje fanger
-felles markedsvariasjon i stedet for postens eget bidrag. Med 57 dager og 63
-vekter er problemet dessuten underbestemt uansett metode. Verktøyet er fjernet;
-selvsikre umuligheter er verre enn ingen diagnose.
-
-## Status
-
-| Del | Tilstand |
-|---|---|
-| Avkastningsmodell | Validert mot 55 dager, 33 tester |
-| Beholdninger fra manuell CSV | Aktiv kilde, 25 poster, 79,83 % dekning |
-| Kurser og valuta fra Yahoo | Virker |
-| NAV-historikk | Manuell fil, mai-juli 2026 |
-| Beholdninger fra Morningstar | Skrevet, ikke verifisert |
-| Beholdninger fra Nordnet | ISIN-oppslag finner ingen instrument-id |
-| NAV automatisk | Ingen kilde funnet — Yahoo og Morningstar kjenner ikke fondet |
-| E-post | Secrets satt, aldri sendt i praksis |
-
-### Åpne spørsmål
-
-- **Hva står igjen av de 0,63 %-poengene?** Halen på 20 % vi ikke ser,
-  handler forvalter gjør, og støy i enkeltkurser. Korrelasjonen på 0,842
-  betyr at rundt 30 % av dagsvariasjonen ikke forklares.
-- **NAV-historikken må vedlikeholdes for hånd** så lenge ingen kilde svarer.
-  Det holder å legge til nye kurser nå og da for å følge med på feilen.
+Method notes, source evaluation and the development log are in
+[docs/METHOD.no.md](docs/METHOD.no.md), in Norwegian.
