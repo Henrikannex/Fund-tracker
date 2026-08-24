@@ -52,9 +52,9 @@ from portfolio drift. Four assumptions were resolved with data rather than argum
 
 ## The code
 
-5,479 lines of Python: 4,221 across 14 modules, and 1,258 in 9 test suites holding 90 tests. Five source
-integrations: manual CSV holdings, Morningstar, Nordnet, Yahoo for prices and FX, and NAV
-history. Four GitHub Actions workflows cover the scheduled estimate, NAV watch,
+4,909 lines of Python: 3,796 across 12 modules, and 1,113 in 8 test suites holding
+91 tests. Four source integrations: manual CSV holdings, Morningstar, Nordnet, and
+Yahoo for prices and FX. Three GitHub Actions workflows cover the scheduled estimate,
 diagnostics and tests.
 
 The daily job runs twice on weekdays so it lands at 22:15 Oslo time under both US

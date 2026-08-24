@@ -13,7 +13,6 @@ import pandas as pd
 from . import backtest as backtest_mod
 from . import notify, report
 from . import validate as validate_mod
-from . import watch as watch_mod
 from .config import list_funds, load_fund
 from .estimate import estimate_return, priced_tickers, resolve_holding
 from .sources import holdings as holdings_mod
@@ -108,13 +107,6 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_val.add_argument("fund")
 
-    p_watch = sub.add_parser(
-        "watch", help="Se etter nye publiserte kurser og sammenlign med estimatet"
-    )
-    p_watch.add_argument("fund")
-    p_watch.add_argument("--email", action="store_true", help="Send varsel ved nye dager")
-    p_watch.add_argument("--days", type=int, default=30, help="Hvor langt tilbake å hente")
-
     sub.add_parser("funds", help="List konfigurerte fond")
 
     args = parser.parse_args(argv)
@@ -128,7 +120,6 @@ def main(argv: list[str] | None = None) -> int:
         "estimate": cmd_estimate,
         "backtest": cmd_backtest,
         "validate": cmd_validate,
-        "watch": cmd_watch,
         "snapshot": cmd_snapshot,
         "resolve": cmd_resolve,
         "probe": cmd_probe,
@@ -354,28 +345,6 @@ def _explain_worst_day(fund, snapshot, as_of: date, span: int = 12) -> None:
         print(f"  {c.name:<28} {c.ticker:<10} vekt {c.weight_pct:>5.2f} %"
               f"   kurs {c.local_return * 100:>+8.2f} %"
               f"   bidrag {c.contribution_pct:>+7.3f} %")
-
-
-def cmd_watch(args) -> int:
-    fund = load_fund(args.fund)
-    try:
-        days = watch_mod.poll(fund, lookback_days=args.days)
-    except watch_mod.NoSourceAvailable as exc:
-        # Exit non-zero so the scheduled job goes red. The whole point of this
-        # command is to notice things; it must not be the thing that fails
-        # unnoticed.
-        print(f"AVBRUTT: {exc}", file=sys.stderr)
-        return 4
-
-    if not days:
-        print("Ingen nye publiserte dager.")
-        return 0
-
-    text = watch_mod.to_text(fund, days)
-    print(text)
-    if args.email:
-        notify.send_email(watch_mod.subject(fund, days), text)
-    return 0
 
 
 def cmd_backtest(args) -> int:
