@@ -36,7 +36,7 @@ on:
         description: Fond-ID
         default: dnb-teknologi-a
       date:
-        description: Dato (YYYY-MM-DD), tomt = i dag
+        description: Dato (YYYY-MM-DD), tomt = børsdagen kjøringen gjelder
         default: ""
       send_email:
         description: Send e-post
