@@ -49,6 +49,45 @@ def subject(est: Estimate) -> str:
     return f"{est.fund_name}: {_pct(est.return_pct)} ({est.date.strftime('%d.%m')})"
 
 
+def blocked_subject(est: Estimate) -> str:
+    return f"{est.fund_name}: ingen estimat for {est.date.strftime('%d.%m')}"
+
+
+def blocked_text(est: Estimate, max_stale: float) -> str:
+    """The mail that goes out when the day could not be priced.
+
+    Silence and "nothing happened" look identical in an inbox. A withheld
+    estimate is the freshness gate doing its job, but for a week in September
+    that was indistinguishable from a broken job, and the way it was noticed
+    was that the mails stopped coming.
+    """
+    lines = [
+        f"{est.fund_name}",
+        f"Ingen estimat for {_no_date(est.date)}.",
+        "",
+        textwrap.fill(
+            f"{_num(est.stale_weight_pct)} % av fondet manglet sluttkurs for "
+            f"dagen, mot grensen på {_num(max_stale)} %. Et estimat regnet på "
+            "videreførte gårsdagskurser ville sett helt normalt ut og vært "
+            "feil, så det er holdt tilbake med vilje.",
+            width=74,
+        ),
+    ]
+    if est.warnings:
+        lines += ["", "Det som mangler:"]
+        lines += [textwrap.fill(w, width=74, initial_indent="  - ",
+                                subsequent_indent="    ") for w in est.warnings]
+    lines += [
+        "",
+        textwrap.fill(
+            "Kursene pleier å være på plass neste morgen. Er de det, kommer "
+            "estimatet for denne dagen da.",
+            width=74,
+        ),
+    ]
+    return "\n".join(lines)
+
+
 def _peer_note(est: Estimate, peers: list[Estimate]) -> str:
     """Spell out the currencies, but only when they actually differ.
 

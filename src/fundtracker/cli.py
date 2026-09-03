@@ -6,7 +6,7 @@ import argparse
 import csv
 import logging
 import sys
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import pandas as pd
 
@@ -24,6 +24,32 @@ log = logging.getLogger("fundtracker")
 # Enough history for a previous close even across a long holiday.
 ESTIMATE_LOOKBACK_DAYS = 21
 
+# How far back to anchor a run that was given no --date, so that every attempt
+# in the evening window prices the same trading day.
+#
+# The scheduled job asks for "today", and that held while GitHub started the run
+# within half an hour of its cron. Since 26 August the same crons have been
+# landing two to six hours late, which pushes the tail of the window past
+# midnight UTC. date.today() then rolls to a day no exchange has traded yet:
+# every price is carried forward, the freshness gate stops the run, and nothing
+# is sent for the day that did have complete prices. One run got a step further
+# and died on it - 2026-09-01 01:22 UTC, "Ingen av beholdningene i
+# dnb-teknologi-a kunne prises for 2026-09-01".
+#
+# Eight hours sits between the two constraints: it is more than the longest
+# delay observed (a run at 06:08 UTC for the previous evening's cron), and less
+# than the 20:15 UTC start of the window, so the earliest attempt still lands on
+# its own day.
+RUN_WINDOW_OFFSET = timedelta(hours=8)
+
+
+def target_date(raw: str | None, now: datetime | None = None) -> date:
+    """The trading day a run is about: --date if given, else the window's day."""
+    if raw:
+        return datetime.strptime(raw, "%Y-%m-%d").date()
+    now = now or datetime.now(timezone.utc)
+    return (now - RUN_WINDOW_OFFSET).date()
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="fundtracker", description=__doc__)
@@ -32,7 +58,11 @@ def main(argv: list[str] | None = None) -> int:
 
     p_est = sub.add_parser("estimate", help="Estimer dagens avkastning")
     p_est.add_argument("fund")
-    p_est.add_argument("--date", help="YYYY-MM-DD, standard er i dag")
+    p_est.add_argument(
+        "--date",
+        help="YYYY-MM-DD, standard er handelsdagen kjøringen gjelder (se "
+        "RUN_WINDOW_OFFSET)",
+    )
     p_est.add_argument("--email", action="store_true", help="Send resultatet på e-post")
     p_est.add_argument("--save", action="store_true", help="Logg estimatet til data/estimates")
     p_est.add_argument(
@@ -52,6 +82,13 @@ def main(argv: list[str] | None = None) -> int:
         "--allow-stale",
         action="store_true",
         help="Send estimatet selv om kurser mangler. Kun for feilsøking.",
+    )
+    p_est.add_argument(
+        "--notify-if-blocked",
+        action="store_true",
+        help="Send en kort e-post om at dagen ikke lot seg regne ut, i stedet "
+        "for å avslutte tyst. Bare på dagens siste forsøk - ellers kommer den "
+        "én gang per forsøk.",
     )
     p_est.add_argument(
         "--skip-if-logged",
@@ -227,7 +264,7 @@ def _price_context(fund, snapshot, target: date):
 
 def cmd_estimate(args) -> int:
     fund = load_fund(args.fund)
-    target = datetime.strptime(args.date, "%Y-%m-%d").date() if args.date else date.today()
+    target = target_date(args.date)
 
     if getattr(args, "skip_if_logged", False) and _already_logged(fund, target):
         log.info("Estimat for %s er allerede logget; hopper over.", target)
@@ -259,7 +296,22 @@ def cmd_estimate(args) -> int:
             "har stengt, eller bruk --allow-stale.",
             file=sys.stderr,
         )
+        # Tyst er det samme som ødelagt sett fra en innboks. Denne uken var
+        # den eneste måten å oppdage at estimatet ble holdt tilbake, at det
+        # ikke kom noen e-post.
+        if args.email and getattr(args, "notify_if_blocked", False):
+            notify.send_email(
+                report.blocked_subject(est), report.blocked_text(est, args.max_stale)
+            )
         return 3
+
+    # Re-checked against the date we ended up with, not the one we asked for.
+    # --latest can land on an earlier day than the one the run started from, and
+    # the morning catch-up asks for a day the evening run may already have sent.
+    # Without this second check that day goes out twice.
+    if getattr(args, "skip_if_logged", False) and _already_logged(fund, est.date):
+        log.info("Estimat for %s er allerede logget; sender ikke på nytt.", est.date)
+        return 0
 
     if args.save:
         _append_estimate(fund, est)
