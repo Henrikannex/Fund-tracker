@@ -52,8 +52,8 @@ from portfolio drift. Four assumptions were resolved with data rather than argum
 
 ## The code
 
-5,088 lines of Python: 3,830 across 12 modules, and 1,258 in 10 test suites holding
-99 tests. Four source integrations: manual CSV holdings, Morningstar, Nordnet, and
+5,245 lines of Python: 3,883 across 12 modules, and 1,362 in 11 test suites holding
+105 tests. Four source integrations: manual CSV holdings, Morningstar, Nordnet, and
 Yahoo for prices and FX. Four GitHub Actions workflows cover the scheduled estimate,
 the morning catch-up, diagnostics and tests.
 
@@ -65,7 +65,9 @@ The day a run is about is anchored eight hours back from the start time rather t
 read off the clock, because GitHub has started these runs up to six hours late and the
 tail of the retry window then crossed midnight UTC into a day nothing had traded. When
 a whole evening passes without complete prices — Yahoo has been missing every European
-close for a full week at a time — a morning job prices yesterday and sends it then.
+close for a full week at a time — a morning job prices yesterday and sends it then, and
+says so in a mail of its own if even that fails. A withheld estimate and a broken job
+look the same in an inbox, which is how a week of silence went unnoticed.
 
 ```bash
 pip install -r requirements.txt && export PYTHONPATH=src

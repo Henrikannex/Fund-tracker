@@ -24,7 +24,10 @@ on:
     - cron: "0 6 * * 2-6"   # 08:00 norsk tid
     # Et forsøk til, for GitHub starter disse kjøringene timer for sent om
     # dagen. Det andre forsøket er en billig nei-operasjon når det første kom
-    # fram.
+    # fram - og er dagens siste, så det er dette som sier fra på e-post hvis
+    # kursene fortsatt ikke er der (--notify-if-blocked under). Varselet henger
+    # på cron-strengen, ikke på klokkeslettet, så en forsinket kjøring sier fra
+    # like fullt og bare én gang.
     - cron: "0 9 * * 2-6"   # 11:00 norsk tid
   workflow_dispatch:
     inputs:
@@ -76,6 +79,7 @@ jobs:
             --date "$target" \
             --save \
             --skip-if-logged \
+            ${{ github.event.schedule == '0 9 * * 2-6' && '--notify-if-blocked' || '' }} \
             ${{ (github.event_name == 'schedule' || inputs.send_email) && '--email' || '' }}
           status=$?
           if [ $status -eq 3 ]; then

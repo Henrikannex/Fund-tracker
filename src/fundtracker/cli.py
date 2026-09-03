@@ -84,6 +84,13 @@ def main(argv: list[str] | None = None) -> int:
         help="Send estimatet selv om kurser mangler. Kun for feilsøking.",
     )
     p_est.add_argument(
+        "--notify-if-blocked",
+        action="store_true",
+        help="Send en kort e-post om at dagen ikke lot seg regne ut, i stedet "
+        "for å avslutte tyst. Bare på dagens siste forsøk - ellers kommer den "
+        "én gang per forsøk.",
+    )
+    p_est.add_argument(
         "--skip-if-logged",
         action="store_true",
         help="Avslutt uten å gjøre noe hvis datoen allerede er logget. "
@@ -289,6 +296,13 @@ def cmd_estimate(args) -> int:
             "har stengt, eller bruk --allow-stale.",
             file=sys.stderr,
         )
+        # Tyst er det samme som ødelagt sett fra en innboks. Denne uken var
+        # den eneste måten å oppdage at estimatet ble holdt tilbake, at det
+        # ikke kom noen e-post.
+        if args.email and getattr(args, "notify_if_blocked", False):
+            notify.send_email(
+                report.blocked_subject(est), report.blocked_text(est, args.max_stale)
+            )
         return 3
 
     # Re-checked against the date we ended up with, not the one we asked for.
