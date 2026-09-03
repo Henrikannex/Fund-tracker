@@ -102,4 +102,13 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data
           git commit -m "data: etterslepsestimat $(date -u +%Y-%m-%d)"
+          # Rebase og prøv igjen hvis noe annet pushet i mellomtiden. Uten det
+          # forsvinner committen med runneren, og jobben blir rød av en grunn
+          # som ikke har noe med estimatet å gjøre.
+          for _ in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            git pull --rebase origin "$GITHUB_REF_NAME"
+          done
           git push
