@@ -99,6 +99,17 @@ def _download(tickers: list[str], start: date, end: date) -> pd.DataFrame:
     return closes[tickers].astype("float64")
 
 
+def raw_closes(tickers: list[str], start: date, end: date) -> pd.DataFrame:
+    """Exactly what Yahoo answered, before any retry or fallback touches it.
+
+    closing_prices() is deliberately forgiving: it re-asks per ticker and then
+    tries Stooq, so by the time a caller sees the frame it can no longer tell
+    what the source actually had. A diagnosis of "which listings is Yahoo
+    missing, and when" needs the unforgiving version.
+    """
+    return _download(sorted(set(tickers)), start, end)
+
+
 def closing_prices(tickers: list[str], start: date, end: date) -> pd.DataFrame:
     """Closing prices in each ticker's own listing currency.
 

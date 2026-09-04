@@ -23,7 +23,7 @@ on:
         description: Hva skal kjøres
         type: choice
         default: alt
-        options: [alt, probe, resolve, estimate, validate, backtest, probe-price, probe-instrument-price, probe-yahoo-price, probe-url]
+        options: [alt, probe, resolve, estimate, validate, backtest, probe-price, probe-instrument-price, probe-yahoo-price, probe-close, probe-url]
       backtest_days:
         description: Antall handelsdager i backtesten
         default: "250"
@@ -33,6 +33,9 @@ on:
           sesjonskapsler (probe-instrument-price), eller den vilkårlige
           URL-en å teste kaldt (probe-url)
         default: "https://www.nordnet.no/aksjer/kurser/microsoft-msft-xnas"
+      date:
+        description: Dato (YYYY-MM-DD) for probe-close, tomt = i dag
+        default: ""
       ticker:
         description: Ticker (kun for probe-instrument-price)
         default: "MSFT"
@@ -110,6 +113,17 @@ jobs:
           python -m fundtracker.cli probe-yahoo-price "$TICKER"
           echo
           python -m fundtracker.cli probe-yahoo-price "SAP.DE"
+
+      - name: Hvilke børser har Yahoo dagens sluttkurs for
+        # Ikke del av "alt": svaret avhenger av klokkeslettet kjøringen starter
+        # på, så den er bare meningsfull når den kjøres med vilje på et bestemt
+        # tidspunkt - to kjøringer rundt europeisk midnatt sier om kursene
+        # forsvinner der, eller om de aldri var der.
+        if: env.TASK == 'probe-close'
+        continue-on-error: true
+        run: python -m fundtracker.cli probe-close "$FUND" ${DATE:+--date "$DATE"}
+        env:
+          DATE: ${{ inputs.date }}
 
       - name: Vilkårlig URL - kald test
         # $URL settes til den fulle forespørselen som skal testes; Referer og

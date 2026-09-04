@@ -139,6 +139,13 @@ def main(argv: list[str] | None = None) -> int:
     p_praw.add_argument("--referer", default=None)
     p_praw.add_argument("--origin", default=None)
 
+    p_pc = sub.add_parser(
+        "probe-close",
+        help="Vis hvilke børser Yahoo faktisk har dagens sluttkurs for",
+    )
+    p_pc.add_argument("fund")
+    p_pc.add_argument("--date", help="YYYY-MM-DD, standard er i dag")
+
     p_val = sub.add_parser(
         "validate", help="Mål modellen mot fondets publiserte periodeavkastning"
     )
@@ -163,6 +170,7 @@ def main(argv: list[str] | None = None) -> int:
         "probe-price": cmd_probe_price,
         "probe-instrument-price": cmd_probe_instrument_price,
         "probe-yahoo-price": cmd_probe_yahoo_price,
+        "probe-close": cmd_probe_close,
         "probe-url": cmd_probe_url,
         "funds": cmd_funds,
     }
@@ -249,6 +257,81 @@ def cmd_probe_yahoo_price(args) -> int:
 def cmd_probe_url(args) -> int:
     print(holdings_mod.probe_raw_url(args.url, referer=args.referer, origin=args.origin))
     return 0
+
+
+def cmd_probe_close(args) -> int:
+    """Report, per exchange, whether Yahoo has a close for the day in question.
+
+    The daily job stops when too much of the fund has no price for the day, and
+    for a week in September that was every European and Nordic listing, every
+    evening, while the same closes were there the next morning. This prints the
+    raw answer from Yahoo - no retries, no Stooq - grouped by exchange suffix,
+    so two runs an hour apart can be compared and the question settled with
+    observations instead of a theory.
+    """
+    fund = load_fund(args.fund)
+    target = (
+        datetime.strptime(args.date, "%Y-%m-%d").date() if args.date else date.today()
+    )
+    snapshot = holdings_mod.load_holdings(fund)
+    tickers, _ = priced_tickers(fund, snapshot)
+
+    start = target - timedelta(days=ESTIMATE_LOOKBACK_DAYS)
+    frame = price_source.raw_closes(tickers, start, target)
+    print(f"Spurte Yahoo om {len(set(tickers))} tickere, {start} til {target}.")
+    print(f"Kjøretidspunkt: {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC")
+    if frame.empty:
+        print("Yahoo ga ingen data i det hele tatt.")
+        return 1
+
+    rows = [ts.date() for ts in frame.index]
+    print(f"Rader i svaret: {rows[0]} til {rows[-1]} ({len(rows)} dager)")
+    stamp = pd.Timestamp(target)
+    if stamp not in frame.index:
+        print(f"Det finnes ingen rad for {target}. Siste rad er {rows[-1]}.")
+        return 1
+
+    by_exchange: dict[str, list[tuple[str, bool]]] = {}
+    for ticker in sorted(set(tickers)):
+        if ticker not in frame.columns:
+            suffix = _exchange_of(ticker)
+            by_exchange.setdefault(suffix, []).append((ticker, False))
+            continue
+        has = not pd.isna(frame.at[stamp, ticker])
+        by_exchange.setdefault(_exchange_of(ticker), []).append((ticker, has))
+
+    print()
+    print(f"Sluttkurs for {target}, per børs:")
+    missing_all: list[str] = []
+    for suffix in sorted(by_exchange):
+        entries = by_exchange[suffix]
+        have = [t for t, ok in entries if ok]
+        missing = [t for t, ok in entries if not ok]
+        missing_all += missing
+        print(f"  {suffix:<8} {len(have):>2} av {len(entries):>2} har kurs"
+              + (f"   mangler: {', '.join(missing)}" if missing else ""))
+
+    print()
+    if missing_all:
+        print(f"Uten kurs for {target}: {len(missing_all)} av {len(set(tickers))}")
+    else:
+        print(f"Alle {len(set(tickers))} tickere har kurs for {target}.")
+
+    # The row before is the control: if it is missing too, the problem is the
+    # request or the source as a whole, not this particular day.
+    earlier = [ts for ts in frame.index if ts < stamp]
+    if earlier:
+        prev = earlier[-1]
+        gone = [t for t in sorted(set(tickers))
+                if t in frame.columns and pd.isna(frame.at[prev, t])]
+        print(f"Til sammenligning, {prev.date()}: {len(gone)} uten kurs"
+              + (f" ({', '.join(gone)})" if gone else ""))
+    return 0
+
+
+def _exchange_of(ticker: str) -> str:
+    """Yahoo's suffix, or "(US)" for the bare tickers that have none."""
+    return f".{ticker.rpartition('.')[2]}" if "." in ticker else "(US)"
 
 
 def _price_context(fund, snapshot, target: date):
