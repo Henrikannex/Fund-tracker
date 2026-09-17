@@ -175,6 +175,32 @@ def _stooq_candidates(ticker: str) -> list[str]:
             for stooq_suffix in STOOQ_SUFFIX_CANDIDATES.get(f".{suffix}".upper(), [])]
 
 
+_stooq_session: requests.Session | None = None
+
+
+def _stooq_client() -> requests.Session:
+    """A Stooq session carrying cookies from an ordinary page load.
+
+    The CSV export (/q/d/l/) has started answering a bare, cookie-less
+    request with an interstitial HTML page ("enable JavaScript...") instead
+    of the CSV, even with a browser-shaped User-Agent. Loading stooq.com's
+    front page first, in the same session, collects the cookies that page
+    would otherwise set via JS - no JS engine needed - and the CSV endpoint
+    accepts the request once the session carries them. Reused across calls
+    so the warm-up happens once per run, not once per ticker.
+    """
+    global _stooq_session
+    if _stooq_session is None:
+        session = requests.Session()
+        session.headers.update(STOOQ_HEADERS)
+        try:
+            session.get("https://stooq.com/", timeout=15)
+        except requests.RequestException as exc:
+            log.info("Stooq warm-up feilet: %s", exc)
+        _stooq_session = session
+    return _stooq_session
+
+
 def _download_stooq_symbol(symbol: str, start: date, end: date) -> pd.DataFrame:
     """One symbol's daily closes from Stooq's CSV export, or an empty frame.
 
@@ -185,7 +211,7 @@ def _download_stooq_symbol(symbol: str, start: date, end: date) -> pd.DataFrame:
     """
     url = f"https://stooq.com/q/d/l/?s={symbol}&d1={start:%Y%m%d}&d2={end:%Y%m%d}&i=d"
     try:
-        response = requests.get(url, timeout=15, headers=STOOQ_HEADERS)
+        response = _stooq_client().get(url, timeout=15)
     except requests.RequestException as exc:
         log.info("Stooq svarte ikke for %s: %s", symbol, exc)
         return pd.DataFrame()
